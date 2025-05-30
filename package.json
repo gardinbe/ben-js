@@ -1,0 +1,26 @@
+{
+  "private": true,
+  "name": "ben-js-tools",
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.11.0 || >=21.2.0"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "format": "eslint . --fix && prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@types/node": "^22.15.29",
+    "eslint": "^9.27.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.33.0",
+    "vite": "^6.3.5",
+    "vite-plugin-banner": "^0.8.1",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}

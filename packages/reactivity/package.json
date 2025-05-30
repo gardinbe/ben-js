@@ -1,0 +1,28 @@
+{
+  "name": "@ben-js/reactivity",
+  "version": "0.0.0",
+  "description": "@ben-js/reactivity",
+  "author": "Ben Gardiner <gardinbe@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gardinbe/ben-js.git"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch"
+  }
+}
