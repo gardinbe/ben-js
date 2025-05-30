@@ -6,5 +6,5 @@
     "moduleResolution": "Node",
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": ["./"]
+  "include": ["./src"]
 }
