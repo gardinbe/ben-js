@@ -187,6 +187,10 @@ const createContent = (parts: TemplateParts): ComponentContent => {
       return parseValue(value.value);
     }
 
+    if (Array.isArray(value)) {
+      return value.map((item) => parseValue(item)).join('');
+    }
+
     if (isComponent(value)) {
       components.push(value);
       return `<!--${ChildComponentMarker}-->`;
