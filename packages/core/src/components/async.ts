@@ -7,10 +7,7 @@ import {
 } from '@ben-js/reactivity';
 import { isComponent, type AwaitableComponent, type Component } from '../component';
 
-/**
- * Represents the constructor for the `Async` component.
- */
-export type AsyncConstructor = {
+export const Async: {
   /**
    * Creates and returns a reactive that swaps to the provided component after resolving.
    * @param component - Awaitable component.
@@ -26,9 +23,7 @@ export type AsyncConstructor = {
    * @returns Reactive component.
    */
   (component: MaybeReactive<AwaitableComponent>, loader: Component): Derived<Component | null>;
-};
-
-export const Async: AsyncConstructor = (input, loader?: Component) => {
+} = (arg, loader?: Component) => {
   const current = reactive<Component | null>(loader ?? null);
 
   /**
@@ -55,11 +50,11 @@ export const Async: AsyncConstructor = (input, loader?: Component) => {
    */
   let exec: () => void;
 
-  if (isReactive(input)) {
-    exec = () => swap(input.value);
-    subscribe(input, exec);
+  if (isReactive(arg)) {
+    exec = () => swap(arg.value);
+    subscribe(arg, exec);
   } else {
-    exec = () => swap(input);
+    exec = () => swap(arg);
   }
 
   exec();
