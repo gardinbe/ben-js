@@ -42,10 +42,6 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
     members.value.forEach((member) => member.render());
   };
 
-  const destroy: Component['destroy'] = () => {
-    members.value.forEach((member) => member.destroy());
-  };
-
   /**
    * Mounts a member.
    * @internal
@@ -73,7 +69,6 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
     mount,
     unmount,
     render,
-    destroy,
     [ComponentSymbol]: true
   };
 };
