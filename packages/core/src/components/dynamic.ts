@@ -33,9 +33,9 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
   };
 
   const unmount: Component['unmount'] = () => {
+    members.value.forEach((member) => member.unmount());
     const parent = marker.parentNode;
     parent?.removeChild(marker);
-    members.value.forEach((member) => member.unmount());
   };
 
   const render: Component['render'] = () => {
@@ -59,10 +59,8 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
   };
 
   watch(members, (next, prev) => {
-    const prevMembers = [...prev].filter(([prevKey]) => !next.has(prevKey));
-    const nextMembers = [...next].filter(([nextKey]) => !prev.has(nextKey));
-    prevMembers.forEach(([, member]) => member.unmount());
-    nextMembers.forEach(([, member]) => mountMember(member));
+    [...prev].filter(([key]) => !next.has(key)).forEach(([, member]) => member.unmount());
+    [...next].filter(([key]) => !prev.has(key)).forEach(([, member]) => mountMember(member));
   });
 
   return {

@@ -96,18 +96,18 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
   };
 
   const unmount: Component['unmount'] = () => {
-    cleanup();
     const parent = marker.parentNode;
-
-    if (!parent) {
-      return;
-    }
-
-    currentNodes.forEach((node) => parent.removeChild(node));
-    parent.removeChild(marker);
+    currentNodes.forEach((node) => parent?.removeChild(node));
+    // todo: this errors, fix
+    // cleanup();
+    parent?.removeChild(marker);
+    currentNodes = [];
+    currentContent = null;
   };
 
   const render: Component['render'] = () => {
+    // todo: check unnecessary rerenders
+
     const parent = marker.parentNode;
 
     if (!parent) {
