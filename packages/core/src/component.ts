@@ -41,11 +41,6 @@ export type Component = {
 };
 
 /**
- * Represents an awaitable component.
- */
-export type AwaitableComponent = Component | Promise<Component>;
-
-/**
  * Symbol to identify components.
  */
 export const ComponentSymbol = Symbol('ben-js.component');

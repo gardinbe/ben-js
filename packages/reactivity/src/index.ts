@@ -10,5 +10,5 @@ export {
   trigger
 } from './reactive';
 export { subscribe, subscriptions, unsubscribe } from './subscriptions';
-export { type MaybeReactive, type MaybeReactiveObject } from './types/maybe-reactive';
+export { type MaybeReactive } from './types/utils';
 export { type WatchFunction, type Watcher, watch } from './watch';
