@@ -2,7 +2,7 @@ import { subscribe, subscriptions } from './subscriptions';
 
 /**
  * Represents a reactive.
- * @template T - Type of the reactive value.
+ * @template T Type of the reactive value.
  */
 export type Reactive<T = unknown> = {
   /**
@@ -23,7 +23,7 @@ export const ReactiveSymbol = Symbol('ben-js.reactive');
 
 /**
  * Checks if the provided value is a reactive value.
- * @param value - Value to check.
+ * @param value Value to check.
  * @returns True if the provided value is a reactive value.
  */
 export const isReactive = (value: unknown): value is Reactive =>
@@ -31,7 +31,7 @@ export const isReactive = (value: unknown): value is Reactive =>
 
 /**
  * Creates and returns a reactive value.
- * @param value - Initial value.
+ * @param value Initial value.
  * @returns Reactive value.
  */
 export const reactive = <T>(value: T): Reactive<T> => {
@@ -63,7 +63,7 @@ let activeEffect: Effect | null = null;
 
 /**
  * Subscribes the active effect to the provided reactive value.
- * @param reactive - Reactive value to subscribe to.
+ * @param reactive Reactive value to subscribe to.
  */
 export const track = <T extends Reactive>(reactive: T): void => {
   if (!activeEffect) {
@@ -75,7 +75,7 @@ export const track = <T extends Reactive>(reactive: T): void => {
 
 /**
  * Triggers the effects subscribed to the provided reactive value.
- * @param reactive - Reactive value to trigger effects for.
+ * @param reactive Reactive value to trigger effects for.
  */
 export const trigger = <T extends Reactive>(reactive: T): void => {
   const subscribers = subscriptions.get(reactive);
@@ -89,7 +89,7 @@ export const trigger = <T extends Reactive>(reactive: T): void => {
  * Creates a context which tracks reactive side effects.
  *
  * Re-executes whenever these reactive side effects are modified.
- * @param effect - Function with reactive side effects.
+ * @param effect Function with reactive side effects.
  */
 export const ctx = (effect: Effect): void => {
   // todo: it seems that these ctx functions are being called a lot

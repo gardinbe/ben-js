@@ -51,7 +51,7 @@ type Package = {
 
 /**
  * Returns the package.json within the given directory.
- * @param path - Directory to get package.json from.
+ * @param path Directory to get package.json from.
  * @returns Package.json object.
  */
 const getPackageJson = async (path: string): Promise<Package> =>
@@ -59,7 +59,7 @@ const getPackageJson = async (path: string): Promise<Package> =>
 
 /**
  * Returns a banner string for the given package.
- * @param pkg - Package to create banner for.
+ * @param pkg Package to create banner for.
  * @returns Banner string.
  */
 const createBanner = (pkg: Package): string =>

@@ -3,8 +3,8 @@ import { go } from '../route';
 
 /**
  * Creates and returns a Link component.
- * @param props - Link props.
- * @param slot - Slot content.
+ * @param props Link props.
+ * @param slot Slot content.
  * @returns Link component.
  */
 export const Link = component<HTMLAnchorAttributes>((props, slot) => {

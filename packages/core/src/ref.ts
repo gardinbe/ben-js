@@ -4,7 +4,7 @@ import { type EventMap, type Listener } from './types/listener';
 
 /**
  * Represents a reactive element reference.
- * @template E - Type of the element.
+ * @template E Type of the element.
  */
 export type Ref<E extends HTMLElement = HTMLElement> = {
   /**
@@ -14,18 +14,18 @@ export type Ref<E extends HTMLElement = HTMLElement> = {
 
   /**
    * Attaches an event listener to the element.
-   * @param type - Event type.
-   * @param callback - Event handler.
-   * @param options - Event listener options.
+   * @param type Event type.
+   * @param callback Event handler.
+   * @param options Event listener options.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
    */
   readonly on: EventListenerBinder<E>;
 
   /**
    * Removes an event listener from the element.
-   * @param type - Event type.
-   * @param callback - Event handler.
-   * @param options - Event listener options.
+   * @param type Event type.
+   * @param callback Event handler.
+   * @param options Event listener options.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener
    */
   readonly off: EventListenerBinder<E>;
@@ -38,7 +38,7 @@ export type Ref<E extends HTMLElement = HTMLElement> = {
 
 /**
  * Represents a function that binds an event listener to an element.
- * @template E - Type of the element.
+ * @template E Type of the element.
  */
 export type EventListenerBinder<E extends HTMLElement> = <
   TMap extends EventMap<E> = EventMap<E>,
@@ -56,7 +56,7 @@ export const RefSymbol = Symbol('ben-js.ref');
 
 /**
  * Checks if the provided value is a ref.
- * @param value - Value to check.
+ * @param value Value to check.
  * @returns True if the provided value is a ref.
  */
 export const isRef = (value: unknown): value is Ref =>
@@ -96,7 +96,7 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
 
   /**
    * Checks if a listener is already set.
-   * @param listener - Listener to check.
+   * @param listener Listener to check.
    * @returns True if the listener is already set.
    * @internal
    */

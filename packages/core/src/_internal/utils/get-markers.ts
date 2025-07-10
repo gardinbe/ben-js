@@ -1,7 +1,7 @@
 /**
  * Returns all comment nodes that match the provided text.
- * @param node - Node to search.
- * @param text - Text to match.
+ * @param node Node to search.
+ * @param text Text to match.
  * @returns Marker comment nodes.
  * @internal
  */

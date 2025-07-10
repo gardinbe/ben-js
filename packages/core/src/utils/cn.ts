@@ -2,7 +2,7 @@ import { derived, isReactive, type Derived } from '@ben-js/reactivity';
 
 /**
  * Creates and returns a reactive class name string composed of the provided class names.
- * @param classes - Class names.
+ * @param classes Class names.
  * @returns Reactive class name string.
  * @example
  * cn('my-class', null, false, 'my-other-class');

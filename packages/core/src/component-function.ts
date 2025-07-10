@@ -26,7 +26,7 @@ export type ComponentFunction<R extends AnyComponent> = {
 
 /**
  * Creates and returns a component function.
- * @param fn - Function to create component.
+ * @param fn Function to create component.
  * @returns Component function.
  */
 export const component: ComponentFunction<Component> &
