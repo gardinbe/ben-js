@@ -1,5 +1,5 @@
 import { derived, reactive, type Reactive } from '@ben-js/reactivity';
-import { type AwaitableComponent } from '@ben-js/core';
+import { type Component } from '@ben-js/core';
 
 /**
  * Represents a route.
@@ -24,7 +24,11 @@ export type Route = {
 /**
  * Represents a route component.
  */
-export type RouteComponent = AwaitableComponent | ((ctx: RouteContext) => AwaitableComponent);
+export type RouteComponent =
+  | Component
+  | Promise<Component>
+  | ((ctx: RouteContext) => Component)
+  | ((ctx: RouteContext) => Promise<Component>);
 
 /**
  * Represents a route context.

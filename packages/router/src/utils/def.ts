@@ -1,4 +1,4 @@
-import { type AwaitableComponent } from '@ben-js/core';
+import { type Component } from '@ben-js/core';
 import { type RouteComponent, type RouteContext } from '../route';
 
 /**
@@ -7,7 +7,7 @@ import { type RouteComponent, type RouteContext } from '../route';
  */
 export const def =
   (
-    importer: () => Promise<{ default: (ctx: RouteContext) => AwaitableComponent }>
+    importer: () => Promise<{ default: (ctx: RouteContext) => Component | Promise<Component> }>
   ): RouteComponent =>
   async (ctx: RouteContext) =>
     (await importer()).default(ctx);

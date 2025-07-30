@@ -14,6 +14,6 @@ export const Router = () =>
       throw new Error(`@ben-js/router → no route resolved for '${current}'`);
     }
 
-    const component = current.route.component;
-    return typeof component === 'function' ? component(current.ctx) : component;
+    const rc = current.route.component;
+    return typeof rc === 'function' ? rc(current.ctx) : rc;
   });

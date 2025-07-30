@@ -3,19 +3,19 @@
 /**
  * Represents a listener for a specific event on an element.
  * @template E Type of the element.
- * @template M Type of the event map.
- * @template V Type of the event.
+ * @template TEventMap Type of the event map.
+ * @template TEvent Type of the event.
  */
 export type Listener<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   E extends HTMLElement = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  M extends EventMap<E> = any,
+  TEventMap extends EventMap<E> = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  V extends Extract<keyof M, string> = any
+  TEvent extends Extract<keyof TEventMap, string> = any
 > = {
-  type: V;
-  callback: (this: E, ev: M[V]) => unknown;
+  type: TEvent;
+  callback: (this: E, ev: TEventMap[TEvent]) => unknown;
   options?: boolean | AddEventListenerOptions | undefined;
 };
 
