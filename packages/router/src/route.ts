@@ -1,5 +1,5 @@
 import { derived, reactive, type Reactive } from '@ben-js/reactivity';
-import { type AwaitableComponent } from '@ben-js/core';
+import { type Component } from '@ben-js/core';
 
 /**
  * Represents a route.
@@ -24,7 +24,11 @@ export type Route = {
 /**
  * Represents a route component.
  */
-export type RouteComponent = AwaitableComponent | ((ctx: RouteContext) => AwaitableComponent);
+export type RouteComponent =
+  | Component
+  | Promise<Component>
+  | ((ctx: RouteContext) => Component)
+  | ((ctx: RouteContext) => Promise<Component>);
 
 /**
  * Represents a route context.
@@ -65,7 +69,7 @@ const dynamicSegmentRx = /^\[(.*)\]$/;
 
 /**
  * Resolves a path to a route and context.
- * @param path - Path to resolve.
+ * @param path Path to resolve.
  * @returns Resolved route and context, or null if no route is found.
  */
 export const resolve = (path: string): ResolvedRoute | null => {
@@ -73,8 +77,8 @@ export const resolve = (path: string): ResolvedRoute | null => {
 
   /**
    * Resolves a segment to a route and context.
-   * @param segment - Segment to resolve.
-   * @param routes - Routes to resolve from.
+   * @param segment Segment to resolve.
+   * @param routes Routes to resolve from.
    * @returns Resolved route and context, or null if no route is found.
    * @internal
    */
@@ -119,7 +123,7 @@ addEventListener('popstate', () => (currentRoute.value = resolve(location.pathna
 
 /**
  * Checks if the provided path is active.
- * @param path - Path to check.
+ * @param path Path to check.
  * @returns True if the path is active.
  */
 export const isActive = (path: string) => {
@@ -133,7 +137,7 @@ export const isActive = (path: string) => {
 
 /**
  * Navigates to a path.
- * @param path - Path to navigate to.
+ * @param path Path to navigate to.
  */
 export const go = (path: string) => {
   const resolved = resolve(path);

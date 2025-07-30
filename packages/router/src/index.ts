@@ -1,5 +1,6 @@
-export { type LinkProps, Link } from './components/link';
+export { Link } from './components/link';
 export { Router } from './components/router';
+export { route } from './route-function';
 export {
   type ResolvedRoute,
   type Route,

@@ -1,9 +1,8 @@
-import { derived, isReactive, type Derived, type MaybeReactiveObject } from '@ben-js/reactivity';
 import type { HTMLAttributes } from '../types/attributes';
 
 /**
  * Creates and returns a string of HTML attributes.
- * @param obj - Object of attributes.
+ * @param obj Object of attributes.
  * @returns String of HTML attributes.
  * @example
  * attrs({
@@ -13,9 +12,9 @@ import type { HTMLAttributes } from '../types/attributes';
  * });
  * // => 'id="my-id" class="my-class" style="background: red;"'
  */
-export const attrs = (obj: MaybeReactiveObject<HTMLAttributes>): Derived<string> =>
-  derived(() =>
-    Object.entries(obj)
-      .map(([key, value]) => `${key}="${isReactive(value) ? value.value : value}"`)
-      .join(' ')
-  );
+export const attrs = (obj: {
+  [key in keyof HTMLAttributes]: HTMLAttributes[key];
+}): string =>
+  Object.entries(obj)
+    .map(([key, value]) => `${key}="${value}"`)
+    .join(' ');

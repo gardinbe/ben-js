@@ -1,12 +1,11 @@
-import { type AwaitableComponent } from '@ben-js/core';
-import { type Derived, derived } from '@ben-js/reactivity';
+import { derived } from '@ben-js/reactivity';
 import { currentRoute } from '../route';
 
 /**
  * Creates and returns a reactive component for the current route.
  * @returns Reactive component.
  */
-export const Router = (): Derived<AwaitableComponent> =>
+export const Router = () =>
   // todo: this fires twice on init
   derived(() => {
     const current = currentRoute.value;
@@ -15,7 +14,6 @@ export const Router = (): Derived<AwaitableComponent> =>
       throw new Error(`@ben-js/router → no route resolved for '${current}'`);
     }
 
-    return typeof current.route.component === 'function'
-      ? current.route.component(current.ctx)
-      : current.route.component;
+    const rc = current.route.component;
+    return typeof rc === 'function' ? rc(current.ctx) : rc;
   });

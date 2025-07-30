@@ -2,8 +2,8 @@ import { type Listener } from '../../types/listener';
 
 /**
  * Checks if two event listeners are equal based on type, callback, and capture flag.
- * @param a - First event listener.
- * @param b - Second event listener.
+ * @param a First event listener.
+ * @param b Second event listener.
  * @returns True if the event listeners are equal.
  * @internal
  */
@@ -12,7 +12,7 @@ export const equalListeners = (a: Listener, b: Listener): boolean =>
 
 /**
  * Checks if an event listener has a capture flag.
- * @param options - Event listener options.
+ * @param options Event listener options.
  * @returns True if the event listener has a capture flag.
  * @internal
  */

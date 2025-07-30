@@ -13,14 +13,14 @@ export type Component = {
    * Mounts the component to the provided node.
    *
    * Replaces the provided node with the component.
-   * @param node - Node to mount the component to.
+   * @param node Node to mount the component to.
    */
   mount(node: Node): void;
   /**
    * Mounts the component to the element with the provided selector.
    *
    * Replaces the element with the component.
-   * @param selector - Selector of the element to mount the component to.
+   * @param selector Selector of the element to mount the component to.
    */
   mount(selector: string): void;
 
@@ -41,18 +41,13 @@ export type Component = {
 };
 
 /**
- * Represents an awaitable component.
- */
-export type AwaitableComponent = Component | Promise<Component>;
-
-/**
  * Symbol to identify components.
  */
 export const ComponentSymbol = Symbol('ben-js.component');
 
 /**
  * Checks if the provided value is a component.
- * @param value - Value to check.
+ * @param value Value to check.
  * @returns True if the provided value is a component.
  */
 export const isComponent = (value: unknown): value is Component =>
@@ -60,8 +55,8 @@ export const isComponent = (value: unknown): value is Component =>
 
 /**
  * Creates and returns a component.
- * @param strings - Template strings.
- * @param values - Template values.
+ * @param strings Template strings.
+ * @param values Template values.
  * @returns Component.
  * @example
  * ```typescript
@@ -172,7 +167,7 @@ const createContent = (parts: TemplateParts): ComponentContent => {
 
   /**
    * Returns the value parsed as a string, and registers reactives, components and refs.
-   * @param value - Value to parse.
+   * @param value Value to parse.
    * @returns Parsed value.
    * @internal
    */
@@ -212,7 +207,7 @@ const createContent = (parts: TemplateParts): ComponentContent => {
 
 /**
  * Creates and returns a fragment from the provided component content.
- * @param content - Component content.
+ * @param content Component content.
  * @returns Document fragment.
  * @internal
  */
