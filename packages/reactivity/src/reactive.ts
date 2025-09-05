@@ -28,16 +28,16 @@ export const isReactive = (value: unknown): value is Reactive =>
  * @returns Reactive value.
  */
 export const reactive = <T>(value: T): Reactive<T> => {
-  let _value: T = value;
+  let current: T = value;
 
   return {
     [ReactiveSymbol]: true,
     get value(): T {
       track(this);
-      return _value;
+      return current;
     },
     set value(next) {
-      _value = next;
+      current = next;
       trigger(this);
     },
   };
@@ -52,22 +52,22 @@ let activeEffect: Effect | null = null;
 
 /**
  * Subscribes the active effect to the provided reactive value.
- * @param reactive Reactive value to subscribe to.
+ * @param rx Reactive value to subscribe to.
  */
-export const track = (reactive: Reactive): void => {
+export const track = (rx: Reactive): void => {
   if (!activeEffect) {
     return;
   }
 
-  subscribe(reactive, activeEffect);
+  subscribe(rx, activeEffect);
 };
 
 /**
  * Triggers the effects subscribed to the provided reactive value.
- * @param reactive Reactive value to trigger effects for.
+ * @param rx Reactive value to trigger effects for.
  */
-export const trigger = (reactive: Reactive): void => {
-  const subscribers = subscriptions.get(reactive);
+export const trigger = (rx: Reactive): void => {
+  const subscribers = subscriptions.get(rx);
   const effect = activeEffect;
   activeEffect = null;
   subscribers?.forEach((subscriber) => {

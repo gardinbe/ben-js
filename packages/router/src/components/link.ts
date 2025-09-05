@@ -17,5 +17,5 @@ export const Link = component<HTMLAnchorAttributes>((props, slot) => {
   });
 
   // prettier-ignore
-  return html`<a ref="${a}" ${attributes(props)}>${slot}</a>`;
+  return html`<a ref='${a}' ${attributes(props)}>${slot}</a>`;
 });

@@ -24,13 +24,13 @@ export type DerivedEffect<T = unknown> = (prev?: T) => T;
  */
 export const derived = <T>(effect: DerivedEffect<T>): Derived<T> => {
   let value: T = effect();
-  const r = reactive(value);
+  const rx = reactive(value);
 
   ctx(() => {
     const newValue = effect(value);
-    r.value = newValue;
+    rx.value = newValue;
     value = newValue;
   });
 
-  return r;
+  return rx;
 };

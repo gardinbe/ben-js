@@ -20,13 +20,13 @@ export type Pojo = {
  *   class: 'my-class',
  *   style: 'background: red;',
  * });
- * // => 'id="my-id" class="my-class" style="background: red;"'
+ * // id='my-id' class='my-class' style='background: red;'
  */
 export const attributes = (obj: Props<HTMLAttributes>): Derived<string> =>
   derived(() =>
     Object.entries(obj)
       .filter(([, value]) => value.value !== undefined)
-      .map(([key, value]) => (key ? `${key}="${value.value}"` : key))
+      .map(([key, value]) => (key ? `${key}='${value.value}'` : key))
       .join(' '),
   );
 
@@ -36,7 +36,7 @@ export const attributes = (obj: Props<HTMLAttributes>): Derived<string> =>
  * @returns Reactive class name string.
  * @example
  * cn('my-class', null, false, 'my-other-class');
- * // => 'my-class my-other-class'
+ * // my-class my-other-class
  */
 export const cn = (...classes: unknown[]): Derived<string> =>
   derived(() =>

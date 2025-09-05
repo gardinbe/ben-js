@@ -44,7 +44,7 @@ type Package = {
 
 const getPackageJson = async (path: string): Promise<Package> =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-  (await import(`file://${join(path, 'package.json')}`, { with: { type: 'json' } })).default;
+  (await import('file://' + join(path, 'package.json'), { with: { type: 'json' } })).default;
 
 const createBanner = (pkg: Package): string =>
   `/**

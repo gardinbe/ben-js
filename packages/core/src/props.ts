@@ -1,6 +1,6 @@
 import { type Reactive } from '@ben-js/reactivity';
 
-import type { Pojo } from './utils';
+import { type Pojo } from './utils';
 
 /**
  * Represents a component property.

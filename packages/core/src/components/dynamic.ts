@@ -9,14 +9,13 @@ import {
 
 /**
  * Creates and returns a dynamic component.
- * @param reactive Reactive array of keyed components.
+ * @param rx Reactive array of keyed components.
  * @returns Dynamic component.
  */
-export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
+export const Dynamic = (rx: Reactive<KeyedComponent[]>): Component => {
   const marker = document.createComment(ComponentMarker);
   const members = derived<Map<Key, Component>>(
-    (prev) =>
-      new Map(reactive.value.map((item) => [item.key, prev?.get(item.key) ?? item.component])),
+    (prev) => new Map(rx.value.map((item) => [item.key, prev?.get(item.key) ?? item.component])),
   );
 
   const mount: Component['mount'] = (arg) => {
