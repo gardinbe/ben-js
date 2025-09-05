@@ -1,18 +1,14 @@
-import {
-  isReactive,
-  type MaybeReactive,
-  type Reactive,
-  reactive,
-  subscribe
-} from '@ben-js/reactivity';
-import { isComponent, type Component } from '../component';
+import { isReactive, type Reactive, reactive, subscribe } from '@ben-js/reactivity';
+
+import { type Component, isComponent } from '../component';
 
 /**
- * Represents the input for the `Async` component function.
+ * Represents the input for the `Async` component.
  */
-export type AsyncComponentInput = MaybeReactive<
-  Component | Promise<Component> | (Component | Promise<Component>)
->;
+export type AsyncComponentInput =
+  | Component
+  | Promise<Component>
+  | Reactive<Component | Promise<Component>>;
 
 export const Async: {
   /**
@@ -33,14 +29,9 @@ export const Async: {
 } = (arg, loader?: Component) => {
   const current = reactive<Component | null>(loader ?? null);
 
-  /**
-   * Swaps the component.
-   * @param _arg Promised component.
-   * @internal
-   */
-  const swap = (_arg: Component | Promise<Component>) => {
-    if (isComponent(_arg)) {
-      current.value = _arg;
+  const swap = (argValue: Component | Promise<Component>): void => {
+    if (isComponent(argValue)) {
+      current.value = argValue;
       return;
     }
 
@@ -48,20 +39,22 @@ export const Async: {
       current.value = loader;
     }
 
-    _arg.then((component) => (current.value = component));
+    void argValue.then((component) => {
+      current.value = component;
+    });
   };
 
-  /**
-   * Executes the swap.
-   * @internal
-   */
   let exec: () => void;
 
   if (isReactive(arg)) {
-    exec = () => swap(arg.value);
+    exec = (): void => {
+      swap(arg.value);
+    };
     subscribe(arg as Reactive<Component>, exec);
   } else {
-    exec = () => swap(arg);
+    exec = (): void => {
+      swap(arg);
+    };
   }
 
   exec();

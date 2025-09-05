@@ -22,8 +22,8 @@
     }
   },
   "dependencies": {
-    "@ben-js/core": "^0.0.0",
-    "@ben-js/reactivity": "^0.0.0"
+    "@ben-js/core": "workspace:*",
+    "@ben-js/reactivity": "workspace:*"
   },
   "scripts": {
     "build": "vite build",

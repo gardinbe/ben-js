@@ -1,4 +1,4 @@
-import { type Reactive, type Effect } from './reactive';
+import { type Effect, type Reactive } from './reactive';
 
 /**
  * Weak map of all subscriptions to reactive values.

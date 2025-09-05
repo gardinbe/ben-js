@@ -1,18 +1,18 @@
 import { type Reactive } from './reactive';
-import { unsubscribe, subscribe } from './subscriptions';
-
-/**
- * Represents a function that executes whenever the reactive value is modified.
- * @template T Type of the reactive value.
- */
-export type WatchFunction<T = unknown> = (next: T, prev: T) => void;
+import { subscribe, unsubscribe } from './subscriptions';
 
 /**
  * Represents a watcher.
  */
 export type Watcher = {
-  readonly stop: () => void;
+  stop: () => void;
 };
+
+/**
+ * Represents a function that executes whenever the reactive value is modified.
+ * @template T Value type.
+ */
+export type WatchFunction<T = unknown> = (next: T, prev: T) => void;
 
 // todo: consider options object with immediate option
 
@@ -28,18 +28,18 @@ export const watch = <T>(reactive: Reactive<T>, fn: WatchFunction<T>): Watcher =
   let value = reactive.value;
   fn(value, value);
 
-  const effect = () => {
+  const effect = (): void => {
     fn(reactive.value, value);
     value = reactive.value;
   };
 
-  const stop = () => {
+  const stop = (): void => {
     unsubscribe(reactive, effect);
   };
 
   subscribe(reactive, effect);
 
   return {
-    stop
+    stop,
   };
 };

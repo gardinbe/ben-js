@@ -22,7 +22,7 @@
     }
   },
   "dependencies": {
-    "@ben-js/reactivity": "^0.0.0"
+    "@ben-js/reactivity": "workspace:*"
   },
   "scripts": {
     "build": "vite build",

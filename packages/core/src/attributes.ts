@@ -1,43 +1,18 @@
 /**
- * Represents HTML attributes.
- */
-export type HTMLAttributes = {
-  /**
-   * Defines an identifier (ID) which must be unique in the whole document
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id
-   */
-  id?: string;
-
-  /**
-   * List of the classes of the element.
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/class
-   */
-  class?: string;
-
-  /**
-   * Contains CSS styling declarations to be applied to the element.
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/style
-   */
-  style?: string;
-
-  [key: string]: string;
-};
-
-/**
  * Represents HTML anchor attributes.
  */
 export type HTMLAnchorAttributes = HTMLAttributes & {
-  /**
-   * URL that the hyperlink points to.
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href
-   */
-  href: string;
-
   /**
    * Causes the browser to treat the linked URL as a download.
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#download
    */
   download?: string;
+
+  /**
+   * URL that the hyperlink points to.
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#href
+   */
+  href: string;
 
   /**
    * A space-separated list of URLs.
@@ -72,5 +47,30 @@ export type HTMLAnchorAttributes = HTMLAttributes & {
    * <iframe>).
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#target
    */
-  target?: '_blank' | '_self' | '_parent' | '_top' | '__unfencedTop';
+  target?: '__unfencedTop' | '_blank' | '_parent' | '_self' | '_top';
+};
+
+/**
+ * Represents HTML attributes.
+ */
+export type HTMLAttributes = {
+  [key: string]: string;
+
+  /**
+   * List of the classes of the element.
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/class
+   */
+  class?: string;
+
+  /**
+   * Defines an identifier (ID) which must be unique in the whole document
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id
+   */
+  id?: string;
+
+  /**
+   * Contains CSS styling declarations to be applied to the element.
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/style
+   */
+  style?: string;
 };
