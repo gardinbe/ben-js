@@ -12,34 +12,30 @@ export type Watcher = {
  * Represents a function that executes whenever a reactive value changes.
  * @template T Value type.
  */
-export type WatchFunction<T = unknown> = (next: T, prev: T) => void;
+export type WatchFunction<T = unknown, TPrevious = T> = (next: T, prev: T | TPrevious) => void;
 
 /**
  * Represents options for a watcher.
  */
 export type WatchOptions = {
+  /**
+   * Whether to invoke the watch function immediately after creation.
+   * @default false
+   */
   immediate?: boolean;
 };
 
 /**
  * Creates a watcher for the provided reactive value.
- *
- * Executes on instantiation, and re-executes whenever the reactive value changes.
  * @param rx Reactive value to watch.
  * @param fn Function to execute.
  * @returns Watcher.
  */
-export const watch = <T>(
+export const watch = <T, O extends WatchOptions>(
   rx: Reactive<T>,
-  fn: WatchFunction<T>,
-  options?: WatchOptions,
+  fn: WatchFunction<T, O extends { immediate: true } ? null : never>,
+  options?: O,
 ): Watcher => {
-  let value = rx.value;
-
-  if (options?.immediate) {
-    fn(value, value);
-  }
-
   const effect = (): void => {
     fn(rx.value, value);
     value = rx.value;
@@ -48,6 +44,12 @@ export const watch = <T>(
   const stop = (): void => {
     unsubscribe(rx, effect);
   };
+
+  let value = rx.value;
+
+  if (options?.immediate) {
+    fn(value, null as T);
+  }
 
   subscribe(rx, effect);
 

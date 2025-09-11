@@ -55,10 +55,7 @@ export type RouteDefinition = {
   path: string;
 };
 
-/**
- * Represents the current routes.
- */
-export const currentRoutes = reactive<RouteDefinition[]>([]);
+const currentRoutes = reactive<RouteDefinition[]>([]);
 
 /**
  * Uses the provided routes for the router.
@@ -74,8 +71,6 @@ export const useRoutes = (routes: RouteDefinition[]): void => {
  * @returns Resolved route and context, or null if no route is found.
  */
 export const resolve = (path: string): null | ResolvedRoute => {
-  const segments = path.split('/').filter((segment) => segment);
-
   const resolveSegment = (segment: string, routes: RouteDefinition[]): null | ResolvedRoute => {
     for (const route of routes) {
       if (route.path === '*') {
@@ -85,7 +80,7 @@ export const resolve = (path: string): null | ResolvedRoute => {
         };
       }
 
-      const dynamicSegment = route.path.match(dynamicSegmentRx)?.[1];
+      const dynamicSegment = route.path.match(DynamicSegmentPattern)?.[1];
 
       if (dynamicSegment) {
         return {
@@ -113,10 +108,11 @@ export const resolve = (path: string): null | ResolvedRoute => {
     return null;
   };
 
+  const segments = path.split('/').filter((segment) => segment);
   return resolveSegment(segments.shift() ?? '', currentRoutes.value);
 };
 
-const dynamicSegmentRx = /^\[(.*)\]$/;
+const DynamicSegmentPattern = /^\[(.*)\]$/;
 
 const currentPath = reactive(location.pathname);
 

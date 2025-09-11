@@ -69,10 +69,6 @@ export const isRef = (value: unknown): value is Ref =>
  * @returns Element reference.
  */
 export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
-  const el: Ref<E>['el'] = reactive(null);
-  const uuid = crypto.randomUUID();
-  const listeners: Listener[] = [];
-
   const on: Ref<E>['on'] = (type, callback, options) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const listener: Listener<any, any, any> = {
@@ -107,19 +103,28 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
 
   const isSet = (listener: Listener): boolean => listeners.some((p) => isSameListener(p, listener));
 
-  watch(el, (next, prev) => {
-    if (prev) {
-      listeners.forEach((listener) => {
-        prev.removeEventListener(listener.type, listener.callback, listener.options);
-      });
-    }
+  const uuid = crypto.randomUUID();
+  const el: Ref<E>['el'] = reactive(null);
+  const listeners: Listener[] = [];
+  watch(
+    el,
+    (next, prev) => {
+      if (prev) {
+        listeners.forEach((listener) => {
+          prev.removeEventListener(listener.type, listener.callback, listener.options);
+        });
+      }
 
-    if (next) {
-      listeners.forEach((listener) => {
-        next.addEventListener(listener.type, listener.callback, listener.options);
-      });
-    }
-  });
+      if (next) {
+        listeners.forEach((listener) => {
+          next.addEventListener(listener.type, listener.callback, listener.options);
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   return {
     el,

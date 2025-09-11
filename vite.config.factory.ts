@@ -21,8 +21,7 @@ export const createViteConfig = async (options: CreateViteConfigOptions): Promis
       },
       outDir: join(options.path, 'dist'),
       rollupOptions: {
-        // todo: maybe not externalize on 'ben-js' package
-        external: ['ben-js', '@ben-js/core', '@ben-js/reactivity', '@ben-js/router'],
+        external: ['@ben-js/core', '@ben-js/reactivity', '@ben-js/router'],
       },
       sourcemap: true,
     },

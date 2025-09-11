@@ -10,15 +10,15 @@ import { AnonymousList } from './AnonymousList';
  * @returns Deferred component.
  */
 export const Deferred = (component: PromiseLike<Component>, loader?: Component): Component => {
-  const current = reactive<Component | null>(loader ?? null);
+  const rx = reactive<Component | null>(loader ?? null);
 
   if (loader) {
-    current.value = loader;
+    rx.value = loader;
   }
 
   void component.then((resolvedComponent) => {
-    current.value = resolvedComponent;
+    rx.value = resolvedComponent;
   });
 
-  return AnonymousList(() => (current.value ? [current.value] : []));
+  return AnonymousList(() => (rx.value ? [rx.value] : []));
 };

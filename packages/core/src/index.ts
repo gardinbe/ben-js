@@ -1,9 +1,18 @@
 export { type HTMLAnchorAttributes, type HTMLAttributes } from './attributes';
 export { type Component, type Hook, type HookFunction, html, isComponent } from './component';
+export { AnonymousList } from './components/AnonymousList';
 export { Deferred } from './components/Deferred';
 export { type KeyedComponent, List } from './components/List';
 export { Swap } from './components/Swap';
-export { type Prop, type Props } from './props';
+export {
+  isStaticProp,
+  type Prop,
+  type Props,
+  type ProvidedProp,
+  type ProvidedProps,
+  type StaticProp,
+  staticProp,
+} from './props';
 export {
   type EventListenerBinder,
   type EventMap,
@@ -12,5 +21,5 @@ export {
   type Ref,
   ref,
 } from './ref';
-export { attributes, cn, type Pojo } from './utils';
+export { attributes, cn } from './utils';
 export { component, type ComponentWrapper } from './wrapper';
