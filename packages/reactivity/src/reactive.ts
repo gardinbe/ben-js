@@ -23,7 +23,7 @@ export const isReactive = (value: unknown): value is Reactive =>
   typeof value === 'object' && !!value && ReactiveSymbol in value;
 
 /**
- * Creates and returns a reactive value.
+ * Creates a reactive value.
  * @param value Initial value.
  * @returns Reactive value.
  */
@@ -78,12 +78,10 @@ export const trigger = (rx: Reactive): void => {
 
 /**
  * Creates a context which tracks reactive side effects.
- *
- * Re-executes whenever these reactive side effects are modified.
  * @param effect Function with reactive side effects.
  */
 export const ctx = (effect: Effect): void => {
-  // todo: it seems that these ctx functions are being called a lot
+  // todo: it seems that these ctx functions are being invoked a lot
   // atleast for Refs... look into that
 
   activeEffect = effect;

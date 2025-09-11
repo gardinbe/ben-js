@@ -3,7 +3,7 @@ import { attributes, component, html, type HTMLAnchorAttributes, ref } from '@be
 import { go } from '../route';
 
 /**
- * Creates and returns a Link component.
+ * Creates a Link component.
  * @param props Link props.
  * @param slot Slot content.
  * @returns Link component.

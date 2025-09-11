@@ -1,7 +1,12 @@
-import { type Effect, type Reactive } from './reactive';
+import { type Reactive } from './reactive';
 
 /**
- * Weak map of all subscriptions to reactive values.
+ * Represents a function with reactive side effects.
+ */
+export type Effect = () => void;
+
+/**
+ * Weak map of all active subscriptions.
  */
 export const subscriptions = new WeakMap<Reactive, Set<Effect>>();
 

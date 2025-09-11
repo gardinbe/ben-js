@@ -1,35 +1,23 @@
 import { ctx, type Reactive, reactive } from './reactive';
 
 /**
- * Represents a derived reactive.
- * @template T Value type.
- */
-export type Derived<T = unknown> = Omit<Reactive<T>, 'value'> &
-  Readonly<Pick<Reactive<T>, 'value'>>;
-
-/**
  * Represents a function that returns a value derived from reactive side effects.
  * @template T Value type.
  */
-export type DerivedEffect<T = unknown> = (prev?: T) => T;
+export type DerivedEffect<T = unknown> = () => T;
 
 /**
- * Creates a context which tracks reactive side effects, and returns a new reactive value derived
- * from these effects.
+ * Creates a reactive value derived from the provided function.
  *
- * Re-executes whenever these reactive side effects are modified, re-evaluating the returned
- * reactive value.
+ * Reactive side effects within the function will cause the reactive value to update.
  * @param effect Function with reactive side effects.
  * @returns Reactive value.
  */
-export const derived = <T>(effect: DerivedEffect<T>): Derived<T> => {
-  let value: T = effect();
-  const rx = reactive(value);
+export const derived = <T>(effect: DerivedEffect<T>): Reactive<T> => {
+  const rx = reactive(effect());
 
   ctx(() => {
-    const newValue = effect(value);
-    rx.value = newValue;
-    value = newValue;
+    rx.value = effect();
   });
 
   return rx;

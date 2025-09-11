@@ -1,5 +1,5 @@
 import { type Component } from '@ben-js/core';
-import { derived, reactive, type Reactive } from '@ben-js/reactivity';
+import { derived, reactive } from '@ben-js/reactivity';
 
 /**
  * Represents a resolved route.
@@ -11,35 +11,15 @@ export type ResolvedRoute = {
   ctx: RouteContext;
 
   /**
-   * Route.
+   * Route definition.
    */
-  route: Route;
+  route: RouteDefinition;
 };
 
 /**
- * Represents a route.
+ * Represents a route component/component constructor.
  */
-export type Route = {
-  /**
-   * Children of the route.
-   */
-  children?: Route[];
-
-  /**
-   * Component of the route.
-   */
-  component: RouteComponent;
-
-  /**
-   * Path of the route.
-   */
-  path: string;
-};
-
-/**
- * Represents a route component.
- */
-export type RouteComponent =
+export type Route =
   | ((ctx: RouteContext) => Component)
   | ((ctx: RouteContext) => Promise<Component>)
   | Component
@@ -56,14 +36,35 @@ export type RouteContext = {
 };
 
 /**
- * Represents the current routes.
+ * Represents a route definition.
  */
-export const currentRoutes = reactive<Route[]>([]);
+export type RouteDefinition = {
+  /**
+   * Children of the route.
+   */
+  children?: RouteDefinition[];
+
+  /**
+   * Component of the route.
+   */
+  component: Route;
+
+  /**
+   * Path of the route.
+   */
+  path: string;
+};
 
 /**
- * Sets the current routes.
+ * Represents the current routes.
  */
-export const setRoutes = (routes: Route[]): void => {
+export const currentRoutes = reactive<RouteDefinition[]>([]);
+
+/**
+ * Uses the provided routes for the router.
+ * @param routes Routes to use.
+ */
+export const useRoutes = (routes: RouteDefinition[]): void => {
   currentRoutes.value = routes;
 };
 
@@ -75,7 +76,7 @@ export const setRoutes = (routes: Route[]): void => {
 export const resolve = (path: string): null | ResolvedRoute => {
   const segments = path.split('/').filter((segment) => segment);
 
-  const resolveSegment = (segment: string, routes: Route[]): null | ResolvedRoute => {
+  const resolveSegment = (segment: string, routes: RouteDefinition[]): null | ResolvedRoute => {
     for (const route of routes) {
       if (route.path === '*') {
         return {
@@ -117,39 +118,23 @@ export const resolve = (path: string): null | ResolvedRoute => {
 
 const dynamicSegmentRx = /^\[(.*)\]$/;
 
+const currentPath = reactive(location.pathname);
+
 /**
  * Represents the current route.
  */
-// todo: hacky manually updating derived value
-export const currentRoute = derived(() =>
-  resolve(location.pathname),
-) as Reactive<null | ResolvedRoute>;
+export const currentRoute = derived(() => resolve(currentPath.value));
 
 addEventListener('popstate', () => {
-  currentRoute.value = resolve(location.pathname);
+  currentPath.value = location.pathname;
 });
-
-/**
- * Checks if the provided path is active.
- * @param path Path to check.
- * @returns True if the path is active.
- */
-export const isActive = (path: string): boolean => {
-  const resolved = resolve(path);
-
-  const find = (route: Route): boolean =>
-    route === currentRoute.value?.route || !!route.children?.some(find);
-
-  return !!resolved && find(resolved.route);
-};
 
 /**
  * Navigates to a path.
  * @param path Path to navigate to.
  */
 export const go = (path: string): void => {
-  const resolved = resolve(path);
-  currentRoute.value = resolved;
+  currentPath.value = path;
   history.pushState(null, '', path);
 };
 
@@ -161,8 +146,15 @@ export const back = (): void => {
 };
 
 /**
- * Wraps a route component constructor with uniform props.
- * @param fn Route component constructor.
- * @returns Route component constructor with uniform props.
+ * Checks if the provided path is active.
+ * @param path Path to check.
+ * @returns True if the path is active.
  */
-export const route = (fn: RouteComponent): typeof fn => fn;
+export const isActive = (path: string): boolean => {
+  const resolved = resolve(path);
+
+  const find = (route: RouteDefinition): boolean =>
+    route === currentRoute.value?.route || !!route.children?.some(find);
+
+  return !!resolved && find(resolved.route);
+};

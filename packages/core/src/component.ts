@@ -1,19 +1,39 @@
 import { isReactive, type Reactive, subscribe, unsubscribe } from '@ben-js/reactivity';
 
-import { isStaticProp, type Props, type ProvidedProps, staticProp } from './props';
+import { isStaticProp } from './props';
 import { isRef, type Ref } from './ref';
-import { type Pojo } from './utils';
 
 /**
  * Represents a component.
  */
 export type Component = {
   readonly [ComponentSymbol]: true;
+
+  /**
+   * Destroys the component.
+   */
+  destroy: () => void;
+
+  /**
+   * Component hooks.
+   */
+  hooks: {
+    /**
+     * Invokes the provided function when the component is mounted.
+     */
+    mounted: Hook;
+
+    /**
+     * Invokes the provided function when the component is unmounted.
+     */
+    unmounted: Hook;
+  };
+
   /**
    * Mounts the component to the provided target.
    *
    * Replaces the provided node with the component.
-   * @param node Node or selector to mount the component to.
+   * @param node Node/selector to mount the component to.
    */
   mount: (target: Node | string) => void;
 
@@ -52,7 +72,7 @@ export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && ComponentSymbol in value;
 
 /**
- * Creates and returns a component.
+ * Creates a component.
  * @param strings Template strings.
  * @param values Template values.
  * @returns Component.
@@ -63,9 +83,23 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     values,
   };
   const marker = document.createComment(ComponentMarker);
-  let nodes: Node[] = [];
-  // todo: maybe don't bin all content, just remove unused
+  let nodes: ChildNode[] = [];
   let content: ComponentContent | null = null;
+  let mounted = false;
+
+  const callbacks = {
+    mounted: new Set<HookFunction>(),
+    unmounted: new Set<HookFunction>(),
+  };
+
+  const hooks: Component['hooks'] = {
+    mounted: (fn: HookFunction): void => {
+      callbacks.mounted.add(fn);
+    },
+    unmounted: (fn: HookFunction): void => {
+      callbacks.unmounted.add(fn);
+    },
+  };
 
   const mount: Component['mount'] = (target) => {
     const targetNode = typeof target === 'string' ? document.querySelector(target) : target;
@@ -80,89 +114,136 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
       throw new Error('ben-js: mount node is an orphan');
     }
 
+    if (mounted) {
+      unmount();
+    }
+
     parent.replaceChild(marker, targetNode);
-    nodes.forEach((node) => parent.insertBefore(node, marker));
-    render();
+    nodes.forEach((node) => {
+      parent.insertBefore(node, marker);
+    });
+    mounted = true;
+    callbacks.mounted.forEach((fn) => {
+      fn();
+    });
   };
 
   const unmount: Component['unmount'] = () => {
-    const parent = marker.parentNode;
-    nodes.forEach((node) => parent?.removeChild(node));
-    // todo: this errors, fix
-    // cleanup();
-    parent?.removeChild(marker);
-    nodes = [];
-    content = null;
+    // todo: investigate this:
+    // if using marker.parentNode?.removeChild(node), it works fine, except for
+    // when unmounting a component that has a dynamic child component
+    // i.e. try navigating away from todo-list to another page. in particular, after
+    // having removed an item
+
+    nodes.forEach((node) => {
+      node.remove();
+    });
+    marker.remove();
+    mounted = false;
+    callbacks.unmounted.forEach((fn) => {
+      fn();
+    });
   };
 
-  const render: Component['render'] = () => {
-    // todo: check unnecessary rerenders
-    const parent = marker.parentNode;
-
-    if (!parent) {
-      return;
-    }
-
-    const newContent = createContent(parts);
-    cleanup(newContent);
-    content = newContent;
-
-    const frag = createFragment(newContent);
-    nodes.forEach((node) => parent.removeChild(node));
-    nodes = [...frag.childNodes];
-    parent.insertBefore(frag, marker);
-  };
-
-  const cleanup = (newContent?: ComponentContent): void => {
-    if (!content || !newContent) {
-      return;
-    }
-
-    content.reactives.difference(newContent.reactives).forEach((rx) => {
+  const clean = (newContent?: ComponentContent): void => {
+    withDifference(content?.reactives, newContent?.reactives, (rx) => {
       unsubscribe(rx, render);
     });
 
-    newContent.reactives.difference(content.reactives).forEach((rx) => {
+    withDifference(newContent?.reactives, content?.reactives, (rx) => {
       subscribe(rx, render);
     });
 
-    content.components.difference(newContent.components).forEach((comp) => {
-      comp.unmount();
+    withDifference(content?.components, newContent?.components, (component) => {
+      component.destroy();
     });
   };
 
+  const destroy: Component['destroy'] = () => {
+    unmount();
+    nodes = [];
+    clean();
+    content = null;
+  };
+
+  const isSameContent = (newContent: ComponentContent): boolean =>
+    !!content &&
+    newContent.html === content.html &&
+    newContent.components.symmetricDifference(content.components).size === 0 &&
+    newContent.reactives.symmetricDifference(content.reactives).size === 0 &&
+    newContent.refs.symmetricDifference(content.refs).size === 0;
+
+  const render: Component['render'] = () => {
+    // todo: check unnecessary rerenders
+    const newContent = createContent(parts);
+
+    if (isSameContent(newContent)) {
+      return;
+    }
+
+    clean(newContent);
+    content = newContent;
+    const frag = createFragment(newContent);
+
+    if (mounted) {
+      nodes.forEach((node) => {
+        node.remove();
+      });
+    }
+
+    nodes = [...frag.childNodes];
+
+    if (mounted) {
+      marker.parentNode?.insertBefore(frag, marker);
+    }
+  };
+
+  render();
+
   return {
     [ComponentSymbol]: true,
+    destroy,
+    hooks,
     mount,
     render,
     unmount,
   };
 };
 
+/**
+ * Represents a component hook.
+ */
+export type Hook = (fn: HookFunction) => void;
+
+/**
+ * Represents a component hook function.
+ */
+export type HookFunction = () => void;
+
 type ComponentContent = {
   components: Set<Component>;
   html: string;
   reactives: Set<Reactive>;
-  refs: Map<Guid, Ref>;
+  refs: Set<Ref>;
 };
-
-type Guid = ReturnType<typeof crypto.randomUUID>;
 
 type TemplateParts = {
   strings: TemplateStringsArray;
   values: unknown[];
 };
 
-const stringify = (value: unknown): string => (value != null ? `${value}` : '');
-
 const createContent = (parts: TemplateParts): ComponentContent => {
   const reactives = new Set<Reactive>();
   const components = new Set<Component>();
-  const refs = new Map<Guid, Ref>();
+  const refs = new Set<Ref>();
 
   const parseValue = (value: unknown): string => {
     if (Array.isArray(value)) {
       return value.map((item) => parseValue(item)).join('');
+    }
+
+    if (isStaticProp(value)) {
+      return parseValue(value.value);
     }
 
     if (isReactive(value)) {
@@ -176,13 +257,8 @@ const createContent = (parts: TemplateParts): ComponentContent => {
     }
 
     if (isRef(value)) {
-      const uuid = crypto.randomUUID();
-      refs.set(uuid, value);
-      return uuid;
-    }
-
-    if (isStaticProp(value)) {
-      return parseValue(value.value);
+      refs.add(value);
+      return value.uuid;
     }
 
     return stringify(value);
@@ -198,6 +274,8 @@ const createContent = (parts: TemplateParts): ComponentContent => {
   };
 };
 
+const stringify = (value: unknown): string => (value != null ? `${value}` : '');
+
 const getMarkers = (node: Node, text: string): Comment[] => {
   const comments =
     node.nodeType === Node.COMMENT_NODE && node.textContent === text ? ([node] as Comment[]) : [];
@@ -210,8 +288,8 @@ const createFragment = (content: ComponentContent): DocumentFragment => {
   tpl.innerHTML = content.html;
   const frag = tpl.content;
 
-  content.refs.forEach((rf, guid) => {
-    const el = frag.querySelector<HTMLElement>(`[ref='${guid}']`);
+  content.refs.forEach((rf) => {
+    const el = frag.querySelector<HTMLElement>(`[ref='${rf.uuid}']`);
 
     if (!el) {
       throw new Error('ben-js: ref target element missing');
@@ -234,47 +312,18 @@ const createFragment = (content: ComponentContent): DocumentFragment => {
   return frag;
 };
 
-/**
- * Represents a component builder.
- */
-export type ComponentBuilder = Overload<Component> &
-  Overload<Promise<Component>> &
-  Overload<Reactive<Component>> &
-  Overload<Reactive<Promise<Component>>>;
+const withDifference = <T>(
+  target: Set<T> | undefined,
+  other: Set<T> | undefined,
+  fn: (item: T) => void,
+): void => {
+  if (!target) {
+    return;
+  }
 
-type AnyComponent =
-  | Component
-  | Promise<Component>
-  | Reactive<Component>
-  | Reactive<Component | Promise<Component>>
-  | Reactive<Promise<Component>>;
-
-type Overload<C extends AnyComponent> = {
-  (fn: (props?: never, ...slots: unknown[]) => C): typeof fn;
-  <T extends Pojo>(
-    fn: (props: Props<T>, ...slots: unknown[]) => C,
-  ): (props: ProvidedProps<T>, ...slots: unknown[]) => C;
-  <T extends Pojo>(
-    fn: (props?: Props<T>, ...slots: unknown[]) => C,
-  ): (props?: ProvidedProps<T>, ...slots: unknown[]) => C;
+  if (other) {
+    target.difference(other).forEach(fn);
+  } else {
+    target.forEach(fn);
+  }
 };
-
-/**
- * Wraps a component constructor with uniform props.
- * @param fn Component constructor.
- * @returns Component constructor with uniform props.
- */
-export const component: ComponentBuilder =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (fn: any) =>
-    (props?: Props, ...slots: unknown[]) =>
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
-      fn(
-        props
-          ? Object.entries(props).reduce<Pojo>((acc, [key, value]) => {
-              acc[key] = isReactive(value) ? value : staticProp(value);
-              return acc;
-            }, {})
-          : undefined,
-        ...slots,
-      );

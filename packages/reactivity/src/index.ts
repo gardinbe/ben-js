@@ -1,4 +1,4 @@
-export { type Derived, derived, type DerivedEffect } from './derived';
+export { derived, type DerivedEffect } from './derived';
 export {
   ctx,
   type Effect,
@@ -10,4 +10,4 @@ export {
   trigger,
 } from './reactive';
 export { subscribe, subscriptions, unsubscribe } from './subscriptions';
-export { watch, type Watcher, type WatchFunction } from './watch';
+export { watch, type Watcher, type WatchFunction, type WatchOptions } from './watch';
