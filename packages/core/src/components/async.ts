@@ -1,11 +1,6 @@
-import {
-  type Derived,
-  reactive,
-  isReactive,
-  subscribe,
-  type MaybeReactive
-} from '@ben-js/reactivity';
-import { isComponent, type AwaitableComponent, type Component } from '../component';
+import { type Derived, reactive, isReactive, subscribe } from '@ben-js/reactivity';
+import { isComponent, type Component } from '../component';
+import type { AnyComponent, AwaitableComponent } from '../types/utils';
 
 export const Async: {
   /**
@@ -13,7 +8,7 @@ export const Async: {
    * @param component - Awaitable component.
    * @returns Reactive component.
    */
-  (component: MaybeReactive<AwaitableComponent>): Derived<Component>;
+  (component: AnyComponent): Derived<Component>;
 
   /**
    * Creates and returns a reactive that swaps the provided loader to the provided component after
@@ -22,7 +17,7 @@ export const Async: {
    * @param loader - Loader component.
    * @returns Reactive component.
    */
-  (component: MaybeReactive<AwaitableComponent>, loader: Component): Derived<Component | null>;
+  (component: AnyComponent, loader: Component): Derived<Component | null>;
 } = (arg, loader?: Component) => {
   const current = reactive<Component | null>(loader ?? null);
 
