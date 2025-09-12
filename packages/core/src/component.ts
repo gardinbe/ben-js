@@ -78,29 +78,6 @@ export const isComponent = (value: unknown): value is Component =>
  * @returns Component.
  */
 export const html = (strings: TemplateStringsArray, ...values: unknown[]): Component => {
-  const parts: TemplateParts = {
-    strings,
-    values,
-  };
-  const marker = document.createComment(ComponentMarker);
-  let nodes: ChildNode[] = [];
-  let content: ComponentContent | null = null;
-  let mounted = false;
-
-  const callbacks = {
-    mounted: new Set<HookFunction>(),
-    unmounted: new Set<HookFunction>(),
-  };
-
-  const hooks: Component['hooks'] = {
-    mounted: (fn: HookFunction): void => {
-      callbacks.mounted.add(fn);
-    },
-    unmounted: (fn: HookFunction): void => {
-      callbacks.unmounted.add(fn);
-    },
-  };
-
   const mount: Component['mount'] = (target) => {
     const targetNode = typeof target === 'string' ? document.querySelector(target) : target;
 
@@ -116,6 +93,8 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
 
     if (mounted) {
       unmount();
+    } else if (!nodes.length) {
+      render();
     }
 
     parent.replaceChild(marker, targetNode);
@@ -129,12 +108,9 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
   };
 
   const unmount: Component['unmount'] = () => {
-    // todo: investigate this:
-    // if using marker.parentNode?.removeChild(node), it works fine, except for
-    // when unmounting a component that has a dynamic child component
-    // i.e. try navigating away from todo-list to another page. in particular, after
-    // having removed an item
-
+    content?.components.forEach((component) => {
+      component.unmount();
+    });
     nodes.forEach((node) => {
       node.remove();
     });
@@ -160,10 +136,10 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
   };
 
   const destroy: Component['destroy'] = () => {
-    unmount();
-    nodes = [];
     clean();
     content = null;
+    unmount();
+    nodes = [];
   };
 
   const isSameContent = (newContent: ComponentContent): boolean =>
@@ -174,7 +150,6 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     newContent.refs.symmetricDifference(content.refs).size === 0;
 
   const render: Component['render'] = () => {
-    // todo: check unnecessary rerenders
     const newContent = createContent(parts);
 
     if (isSameContent(newContent)) {
@@ -196,6 +171,29 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     if (mounted) {
       marker.parentNode?.insertBefore(frag, marker);
     }
+  };
+
+  const parts: TemplateParts = {
+    strings,
+    values,
+  };
+  const marker = document.createComment(ComponentMarker);
+  let nodes: ChildNode[] = [];
+  let content: ComponentContent | null = null;
+  let mounted = false;
+
+  const callbacks = {
+    mounted: new Set<HookFunction>(),
+    unmounted: new Set<HookFunction>(),
+  };
+
+  const hooks: Component['hooks'] = {
+    mounted: (fn: HookFunction): void => {
+      callbacks.mounted.add(fn);
+    },
+    unmounted: (fn: HookFunction): void => {
+      callbacks.unmounted.add(fn);
+    },
   };
 
   render();
@@ -233,10 +231,6 @@ type TemplateParts = {
 };
 
 const createContent = (parts: TemplateParts): ComponentContent => {
-  const reactives = new Set<Reactive>();
-  const components = new Set<Component>();
-  const refs = new Set<Ref>();
-
   const parseValue = (value: unknown): string => {
     if (Array.isArray(value)) {
       return value.map((item) => parseValue(item)).join('');
@@ -264,6 +258,9 @@ const createContent = (parts: TemplateParts): ComponentContent => {
     return stringify(value);
   };
 
+  const reactives = new Set<Reactive>();
+  const components = new Set<Component>();
+  const refs = new Set<Ref>();
   const html = parts.strings.map((str, i) => str + parseValue(parts.values[i])).join('');
 
   return {

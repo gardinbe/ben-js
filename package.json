@@ -7,9 +7,6 @@
   "engines": {
     "node": ">=20.11.0 || >=21.2.0"
   },
-  "workspaces": [
-    "packages/*"
-  ],
   "devDependencies": {
     "@eslint/js": "^9.34.0",
     "@types/node": "^24.3.1",

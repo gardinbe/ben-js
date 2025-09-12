@@ -1,4 +1,5 @@
 export { derived, type DerivedEffect } from './derived';
+export { flatten, type Flattened } from './flatten';
 export {
   ctx,
   type Effect,

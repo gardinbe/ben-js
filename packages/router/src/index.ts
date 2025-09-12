@@ -4,7 +4,6 @@ export { define } from './define';
 export {
   back,
   currentRoute,
-  currentRoutes,
   go,
   isActive,
   resolve,

@@ -28,16 +28,16 @@ export const isReactive = (value: unknown): value is Reactive =>
  * @returns Reactive value.
  */
 export const reactive = <T>(value: T): Reactive<T> => {
-  let current: T = value;
+  let currentValue: T = value;
 
   return {
     [ReactiveSymbol]: true,
     get value(): T {
       track(this);
-      return current;
+      return currentValue;
     },
     set value(next) {
-      current = next;
+      currentValue = next;
       trigger(this);
     },
   };
@@ -81,9 +81,6 @@ export const trigger = (rx: Reactive): void => {
  * @param effect Function with reactive side effects.
  */
 export const ctx = (effect: Effect): void => {
-  // todo: it seems that these ctx functions are being invoked a lot
-  // atleast for Refs... look into that
-
   activeEffect = effect;
   effect();
   activeEffect = null;

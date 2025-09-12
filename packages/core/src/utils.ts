@@ -1,8 +1,5 @@
 import { derived, isReactive, type Reactive } from '@ben-js/reactivity';
 
-import { type HTMLAttributes } from './attributes';
-import { type Props } from './props';
-
 /**
  * Represents a plain old JavaScript object.
  */
@@ -27,11 +24,12 @@ export type UUID = ReturnType<typeof crypto.randomUUID>;
  * });
  * // id='my-id' class='my-class' style='background: red;'
  */
-export const attributes = (obj: Props<HTMLAttributes>): Reactive<string> =>
+export const attributes = (obj: Pojo): Reactive<string> =>
   derived(() =>
     Object.entries(obj)
-      .filter(([, value]) => value.value !== undefined)
-      .map(([key, value]) => (key ? `${key}='${value.value}'` : key))
+      .map(([key, value]) => [key, isReactive(value) ? value.value : value])
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => (key ? `${key}='${value}'` : key))
       .join(' '),
   );
 

@@ -14,24 +14,6 @@ import {
  * @returns List component.
  */
 export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]>): Component => {
-  const rx = typeof items === 'function' ? derived(items) : items;
-  const marker = document.createComment(ComponentMarker);
-  const members = reactive<Map<PropertyKey, Component>>(new Map());
-
-  const callbacks = {
-    mounted: new Set<HookFunction>(),
-    unmounted: new Set<HookFunction>(),
-  };
-
-  const hooks: Component['hooks'] = {
-    mounted: (fn: HookFunction): void => {
-      callbacks.mounted.add(fn);
-    },
-    unmounted: (fn: HookFunction): void => {
-      callbacks.unmounted.add(fn);
-    },
-  };
-
   const mount: Component['mount'] = (target) => {
     const targetNode = typeof target === 'string' ? document.querySelector(target) : target;
 
@@ -46,7 +28,9 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
     }
 
     parent.replaceChild(marker, targetNode);
-    members.value.forEach(mountMember);
+    members.value.forEach((member) => {
+      mountMember(member);
+    });
     callbacks.mounted.forEach((fn) => {
       fn();
     });
@@ -63,14 +47,10 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
   };
 
   const destroy: Component['destroy'] = () => {
-    // todo: this is duplicated from unmount
     members.value.forEach((member) => {
       member.destroy();
     });
-    marker.remove();
-    callbacks.unmounted.forEach((fn) => {
-      fn();
-    });
+    unmount();
   };
 
   const render: Component['render'] = () => {
@@ -91,29 +71,49 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
     member.mount(memberMarker);
   };
 
+  const marker = document.createComment(ComponentMarker);
+  const rx = typeof items === 'function' ? derived(items) : items;
+  const members = reactive<Map<PropertyKey, Component>>(new Map());
   watch(
     rx,
-    (next) => {
-      [...members.value]
-        .filter(([key]) => !next.some((item) => item.key === key))
-        .forEach(([, member]) => {
-          member.unmount();
+    (next, prev) => {
+      prev
+        ?.filter((prevItem) => !next.some((nextItem) => nextItem.key === prevItem.key))
+        .map((item) => members.value.get(item.key))
+        .filter((key) => !!key)
+        .forEach((component) => {
+          component.destroy();
+        });
+
+      next
+        .filter((nextItem) => !prev?.some((prevItem) => prevItem.key === nextItem.key))
+        .map((item) => item.component)
+        .forEach((component) => {
+          mountMember(component);
         });
 
       members.value = new Map(
-        rx.value.map((item) => [item.key, members.value.get(item.key) ?? item.component]),
+        next.map((item) => [item.key, members.value.get(item.key) ?? item.component]),
       );
-
-      [...members.value]
-        .filter(([key]) => next.some((item) => item.key === key))
-        .forEach(([, member]) => {
-          mountMember(member);
-        });
     },
     {
       immediate: true,
     },
   );
+
+  const callbacks = {
+    mounted: new Set<HookFunction>(),
+    unmounted: new Set<HookFunction>(),
+  };
+
+  const hooks: Component['hooks'] = {
+    mounted: (fn: HookFunction): void => {
+      callbacks.mounted.add(fn);
+    },
+    unmounted: (fn: HookFunction): void => {
+      callbacks.unmounted.add(fn);
+    },
+  };
 
   return {
     [ComponentSymbol]: true,

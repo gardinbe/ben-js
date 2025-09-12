@@ -48,13 +48,13 @@ export const staticProp = <T>(value: T): StaticProp<T> => ({
 });
 
 /**
- * Represents a property provided to a component.
+ * Represents a property to be provided to a component.
  * @template T Value type.
  */
 export type ProvidedProp<T = unknown> = Reactive<Exclude<T, undefined>> | T;
 
 /**
- * Represents an object with properties provided to a component.
+ * Represents an object with properties to be provided to a component.
  * @template T Object type.
  */
 export type ProvidedProps<T = Pojo> = {
