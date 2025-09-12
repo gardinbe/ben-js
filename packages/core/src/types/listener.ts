@@ -2,9 +2,9 @@
 
 /**
  * Represents a listener for a specific event on an element.
- * @template E - Type of the element.
- * @template M - Type of the event map.
- * @template V - Type of the event.
+ * @template E Type of the element.
+ * @template M Type of the event map.
+ * @template V Type of the event.
  */
 export type Listener<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,7 +21,7 @@ export type Listener<
 
 /**
  * Represents the event map for an element.
- * @template E - Type of the element.
+ * @template E Type of the element.
  */
 export type EventMap<E extends Element> = E extends HTMLVideoElement
   ? HTMLVideoElementEventMap

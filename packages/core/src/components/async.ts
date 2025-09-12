@@ -5,7 +5,7 @@ import type { AnyComponent, AwaitableComponent } from '../types/utils';
 export const Async: {
   /**
    * Creates and returns a reactive that swaps to the provided component after resolving.
-   * @param component - Awaitable component.
+   * @param component Awaitable component.
    * @returns Reactive component.
    */
   (component: AnyComponent): Derived<Component>;
@@ -13,8 +13,8 @@ export const Async: {
   /**
    * Creates and returns a reactive that swaps the provided loader to the provided component after
    * resolving.
-   * @param component - Awaitable component.
-   * @param loader - Loader component.
+   * @param component Awaitable component.
+   * @param loader Loader component.
    * @returns Reactive component.
    */
   (component: AnyComponent, loader: Component): Derived<Component | null>;
@@ -23,7 +23,7 @@ export const Async: {
 
   /**
    * Swaps the component.
-   * @param component - Unwrapped awaitable component.
+   * @param component Unwrapped awaitable component.
    * @internal
    */
   const swap = async (component: AwaitableComponent) => {

@@ -3,7 +3,7 @@ import type { HTMLAttributes } from '../types/attributes';
 
 /**
  * Creates and returns a string of HTML attributes.
- * @param obj - Object of attributes.
+ * @param obj Object of attributes.
  * @returns String of HTML attributes.
  * @example
  * attrs({

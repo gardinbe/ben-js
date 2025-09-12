@@ -7,8 +7,8 @@ export const subscriptions = new WeakMap<Reactive, Set<Effect>>();
 
 /**
  * Subscribes the provided effect to the provided reactive value.
- * @param reactive - Reactive value to subscribe to.
- * @param effect - Function with reactive side effects.
+ * @param reactive Reactive value to subscribe to.
+ * @param effect Function with reactive side effects.
  */
 export const subscribe = <T>(reactive: Reactive<T>, effect: Effect): void => {
   let subscribers = subscriptions.get(reactive);
@@ -23,8 +23,8 @@ export const subscribe = <T>(reactive: Reactive<T>, effect: Effect): void => {
 
 /**
  * Unsubscribes the provided effect from the provided reactive value.
- * @param reactive - Reactive value to unsubscribe from.
- * @param effect - Function with reactive side effects.
+ * @param reactive Reactive value to unsubscribe from.
+ * @param effect Function with reactive side effects.
  */
 export const unsubscribe = (reactive: Reactive, effect: Effect): void => {
   const subscribers = subscriptions.get(reactive);

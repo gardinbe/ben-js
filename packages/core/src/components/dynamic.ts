@@ -4,7 +4,7 @@ import { ComponentSymbol, type Component } from '../component';
 
 /**
  * Creates and returns a dynamic component.
- * @param reactive - Function which returns an array of components.
+ * @param reactive Function which returns an array of components.
  * @returns Dynamic component.
  */
 export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
