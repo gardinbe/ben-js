@@ -13,11 +13,6 @@ export type Ref<E extends HTMLElement = HTMLElement> = {
   readonly el: Reactive<E | null>;
 
   /**
-   * @internal
-   */
-  readonly guid: Guid;
-
-  /**
    * Attaches an event listener to the element.
    * @param type - Event type.
    * @param callback - Event handler.
@@ -40,11 +35,6 @@ export type Ref<E extends HTMLElement = HTMLElement> = {
    */
   readonly [RefSymbol]: true;
 };
-
-/**
- * Represents a GUID.
- */
-export type Guid = ReturnType<typeof crypto.randomUUID>;
 
 /**
  * Represents a function that binds an event listener to an element.
@@ -78,7 +68,6 @@ export const isRef = (value: unknown): value is Ref =>
  */
 export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   const el: Ref<E>['el'] = reactive(null);
-  const guid: Ref<E>['guid'] = crypto.randomUUID();
   const listeners: Listener[] = [];
 
   const on: Ref<E>['on'] = (type, callback, options) => {
@@ -129,7 +118,6 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
 
   return {
     el,
-    guid,
     on,
     off,
     [RefSymbol]: true

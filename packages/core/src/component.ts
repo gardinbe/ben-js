@@ -2,7 +2,8 @@ import { type Reactive, isReactive, subscribe, unsubscribe } from '@ben-js/react
 import { ComponentMarker, ChildComponentMarker } from './_internal/constants';
 import { getMarkers } from './_internal/utils/get-markers';
 import { stringify } from './_internal/utils/stringify';
-import { isRef, type Guid, type Ref } from './ref';
+import { type Guid } from './_internal/types/guid';
+import { type Ref, isRef } from './ref';
 
 /**
  * Represents a component.
@@ -32,11 +33,6 @@ export type Component = {
    * Renders the component.
    */
   readonly render: () => void;
-
-  /**
-   * Destroys the component.
-   */
-  readonly destroy: () => void;
 
   /**
    * @internal
@@ -100,6 +96,7 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
   };
 
   const unmount: Component['unmount'] = () => {
+    cleanup();
     const parent = marker.parentNode;
 
     if (!parent) {
@@ -118,17 +115,7 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     }
 
     const content = createContent(parts);
-
-    const prevReactives = currentContent?.reactives.filter(
-      (reactive) => !content.reactives.includes(reactive)
-    );
-    const nextReactives = content.reactives.filter(
-      (reactive) => !currentContent?.reactives.includes(reactive)
-    );
-    prevReactives?.forEach((reactive) => unsubscribe(reactive, render));
-    nextReactives.forEach((reactive) => subscribe(reactive, render));
-
-    // todo: diffing
+    cleanup(content);
     currentContent = content;
 
     const frag = createFragment(content);
@@ -137,18 +124,26 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     parent.insertBefore(frag, marker);
   };
 
-  const destroy: Component['destroy'] = () => {
-    // todo: sus
-    currentContent?.reactives.forEach((reactive) => unsubscribe(reactive, render));
-    currentContent?.components.forEach((component) => component.destroy());
-    unmount();
+  /**
+   * Cleans up old/orphaned component content.
+   * @internal
+   */
+  const cleanup = (newContent?: ComponentContent) => {
+    currentContent?.reactives
+      .filter((reactive) => !newContent?.reactives.includes(reactive))
+      .forEach((reactive) => unsubscribe(reactive, render));
+    newContent?.reactives
+      .filter((reactive) => !currentContent?.reactives.includes(reactive))
+      .forEach((reactive) => subscribe(reactive, render));
+    currentContent?.components
+      .filter((component) => !newContent?.components.includes(component))
+      .forEach((component) => component.unmount());
   };
 
   return {
     mount,
     unmount,
     render,
-    destroy,
     [ComponentSymbol]: true
   };
 };
@@ -162,7 +157,7 @@ type ComponentContent = {
   readonly html: string;
   readonly reactives: Reactive[];
   readonly components: Component[];
-  readonly refs: Map<Ref, Guid>;
+  readonly refs: Map<Guid, Ref>;
 };
 
 /**
@@ -173,7 +168,7 @@ type ComponentContent = {
 const createContent = (parts: TemplateParts): ComponentContent => {
   const reactives: Reactive[] = [];
   const components: Component[] = [];
-  const refs = new Map<Ref, Guid>();
+  const refs = new Map<Guid, Ref>();
 
   /**
    * Returns the value parsed as a string, and registers reactives, components and refs.
@@ -182,13 +177,13 @@ const createContent = (parts: TemplateParts): ComponentContent => {
    * @internal
    */
   const parseValue = (value: unknown): string => {
+    if (Array.isArray(value)) {
+      return value.map((item) => parseValue(item)).join('');
+    }
+
     if (isReactive(value)) {
       reactives.push(value);
       return parseValue(value.value);
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((item) => parseValue(item)).join('');
     }
 
     if (isComponent(value)) {
@@ -197,8 +192,9 @@ const createContent = (parts: TemplateParts): ComponentContent => {
     }
 
     if (isRef(value)) {
-      refs.set(value, value.guid);
-      return value.guid;
+      const uuid = crypto.randomUUID();
+      refs.set(uuid, value);
+      return uuid;
     }
 
     return stringify(value);
@@ -225,7 +221,7 @@ const createFragment = (content: ComponentContent): DocumentFragment => {
   tpl.innerHTML = content.html;
   const frag = tpl.content;
 
-  content.refs.forEach((guid, ref) => {
+  content.refs.forEach((ref, guid) => {
     const el = frag.querySelector<HTMLElement>(`[ref="${guid}"]`);
 
     if (!el) {
