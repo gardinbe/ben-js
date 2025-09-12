@@ -20,24 +20,24 @@ export type WatchFunction<T = unknown> = (next: T, prev: T) => void;
  * Creates and returns a watcher that watches the provided reactive value.
  *
  * Executes on instantiation, and re-executes whenever the reactive value is modified.
- * @param reactive Reactive value to watch.
+ * @param rx Reactive value to watch.
  * @param fn Function to execute.
  * @returns Watcher.
  */
-export const watch = <T>(reactive: Reactive<T>, fn: WatchFunction<T>): Watcher => {
-  let value = reactive.value;
+export const watch = <T>(rx: Reactive<T>, fn: WatchFunction<T>): Watcher => {
+  let value = rx.value;
   fn(value, value);
 
   const effect = (): void => {
-    fn(reactive.value, value);
-    value = reactive.value;
+    fn(rx.value, value);
+    value = rx.value;
   };
 
   const stop = (): void => {
-    unsubscribe(reactive, effect);
+    unsubscribe(rx, effect);
   };
 
-  subscribe(reactive, effect);
+  subscribe(rx, effect);
 
   return {
     stop,

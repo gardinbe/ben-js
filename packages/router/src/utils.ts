@@ -6,8 +6,10 @@ import { type RouteComponent, type RouteContext } from './route';
  * Imports a default-exported component.
  */
 export const def =
-  (
-    importer: () => Promise<{ default: (ctx: RouteContext) => Component | Promise<Component> }>,
-  ): RouteComponent =>
+  (importer: () => Promise<ExportedRoute>): RouteComponent =>
   async (ctx: RouteContext) =>
     (await importer()).default(ctx);
+
+type ExportedRoute = {
+  default: (ctx: RouteContext) => Component | Promise<Component>;
+};

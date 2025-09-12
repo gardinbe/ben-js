@@ -13,25 +13,25 @@ export type AsyncComponentInput =
 export const Async: {
   /**
    * Creates and returns a reactive that swaps to the provided component after resolving.
-   * @param component Promised component.
+   * @param comp Promised component.
    * @returns Reactive component.
    */
-  (component: AsyncComponentInput): Reactive<Component>;
+  (comp: AsyncComponentInput): Reactive<Component>;
 
   /**
    * Creates and returns a reactive that swaps the provided loader to the provided component after
    * resolving.
-   * @param component Promised component.
+   * @param comp Promised component.
    * @param loader Loader component.
    * @returns Reactive component.
    */
-  (component: AsyncComponentInput, loader?: Component): Reactive<Component | null>;
+  (comp: AsyncComponentInput, loader?: Component): Reactive<Component | null>;
 } = (arg, loader?: Component) => {
   const current = reactive<Component | null>(loader ?? null);
 
-  const swap = (argValue: Component | Promise<Component>): void => {
-    if (isComponent(argValue)) {
-      current.value = argValue;
+  const swap = (value: Component | Promise<Component>): void => {
+    if (isComponent(value)) {
+      current.value = value;
       return;
     }
 
@@ -39,8 +39,8 @@ export const Async: {
       current.value = loader;
     }
 
-    void argValue.then((component) => {
-      current.value = component;
+    void value.then((comp) => {
+      current.value = comp;
     });
   };
 

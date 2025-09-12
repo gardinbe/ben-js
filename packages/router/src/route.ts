@@ -78,13 +78,21 @@ export const resolve = (path: string): null | ResolvedRoute => {
   const resolveSegment = (segment: string, routes: Route[]): null | ResolvedRoute => {
     for (const route of routes) {
       if (route.path === '*') {
-        return { ctx: {}, route };
+        return {
+          ctx: {},
+          route,
+        };
       }
 
       const dynamicSegment = route.path.match(dynamicSegmentRx)?.[1];
 
       if (dynamicSegment) {
-        return { ctx: { [dynamicSegment]: segment }, route };
+        return {
+          ctx: {
+            [dynamicSegment]: segment,
+          },
+          route,
+        };
       }
 
       if (route.path === segment) {
@@ -94,7 +102,10 @@ export const resolve = (path: string): null | ResolvedRoute => {
           return resolveSegment(nextSegment, route.children);
         }
 
-        return { ctx: {}, route };
+        return {
+          ctx: {},
+          route,
+        };
       }
     }
 

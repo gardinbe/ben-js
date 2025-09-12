@@ -1,9 +1,8 @@
 import { isReactive, type Reactive, subscribe, unsubscribe } from '@ben-js/reactivity';
 
-import type { Pojo } from './utils';
-
 import { isStaticProp, type Props, type ProvidedProps, staticProp } from './props';
 import { isRef, type Ref } from './ref';
+import { type Pojo } from './utils';
 
 /**
  * Represents a component.
@@ -57,16 +56,12 @@ export const isComponent = (value: unknown): value is Component =>
  * @param strings Template strings.
  * @param values Template values.
  * @returns Component.
- * @example
- * ```typescript
- * const HelloWorld = () => {
- *   const message = 'hello world!';
- *   return html`<div>${message}</div>`;
- * };
- * ```
  */
 export const html = (strings: TemplateStringsArray, ...values: unknown[]): Component => {
-  const parts: TemplateParts = { strings, values };
+  const parts: TemplateParts = {
+    strings,
+    values,
+  };
   const marker = document.createComment(ComponentMarker);
   let nodes: Node[] = [];
   // todo: maybe don't bin all content, just remove unused
@@ -119,21 +114,21 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
   };
 
   const cleanup = (newContent?: ComponentContent): void => {
-    content?.reactives
-      .filter((reactive) => !newContent?.reactives.includes(reactive))
-      .forEach((reactive) => {
-        unsubscribe(reactive, render);
-      });
-    newContent?.reactives
-      .filter((reactive) => !content?.reactives.includes(reactive))
-      .forEach((reactive) => {
-        subscribe(reactive, render);
-      });
-    content?.components
-      .filter((component) => !newContent?.components.includes(component))
-      .forEach((component) => {
-        component.unmount();
-      });
+    if (!content || !newContent) {
+      return;
+    }
+
+    content.reactives.difference(newContent.reactives).forEach((rx) => {
+      unsubscribe(rx, render);
+    });
+
+    newContent.reactives.difference(content.reactives).forEach((rx) => {
+      subscribe(rx, render);
+    });
+
+    content.components.difference(newContent.components).forEach((comp) => {
+      comp.unmount();
+    });
   };
 
   return {
@@ -145,9 +140,9 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
 };
 
 type ComponentContent = {
-  components: Component[];
+  components: Set<Component>;
   html: string;
-  reactives: Reactive[];
+  reactives: Set<Reactive>;
   refs: Map<Guid, Ref>;
 };
 
@@ -161,8 +156,8 @@ type TemplateParts = {
 const stringify = (value: unknown): string => (value != null ? `${value}` : '');
 
 const createContent = (parts: TemplateParts): ComponentContent => {
-  const reactives: Reactive[] = [];
-  const components: Component[] = [];
+  const reactives = new Set<Reactive>();
+  const components = new Set<Component>();
   const refs = new Map<Guid, Ref>();
 
   const parseValue = (value: unknown): string => {
@@ -171,12 +166,12 @@ const createContent = (parts: TemplateParts): ComponentContent => {
     }
 
     if (isReactive(value)) {
-      reactives.push(value);
+      reactives.add(value);
       return parseValue(value.value);
     }
 
     if (isComponent(value)) {
-      components.push(value);
+      components.add(value);
       return `<!--${ChildComponentMarker}-->`;
     }
 
@@ -215,25 +210,25 @@ const createFragment = (content: ComponentContent): DocumentFragment => {
   tpl.innerHTML = content.html;
   const frag = tpl.content;
 
-  content.refs.forEach((ref, guid) => {
-    const el = frag.querySelector<HTMLElement>(`[ref="${guid}"]`);
+  content.refs.forEach((rf, guid) => {
+    const el = frag.querySelector<HTMLElement>(`[ref='${guid}']`);
 
     if (!el) {
       throw new Error('ben-js: ref target element missing');
     }
 
     el.removeAttribute('ref');
-    ref.el.value = el;
+    rf.el.value = el;
   });
 
   const markers = getMarkers(frag, ChildComponentMarker);
 
-  if (markers.length !== content.components.length) {
+  if (markers.length !== content.components.size) {
     throw new Error('ben-js: component marker count mismatch');
   }
 
   markers.forEach((marker, i) => {
-    content.components[i]!.mount(marker);
+    [...content.components][i]!.mount(marker);
   });
 
   return frag;
@@ -254,14 +249,14 @@ type AnyComponent =
   | Reactive<Component | Promise<Component>>
   | Reactive<Promise<Component>>;
 
-type Overload<R extends AnyComponent> = {
-  (fn: (props?: never, ...slots: unknown[]) => R): typeof fn;
+type Overload<C extends AnyComponent> = {
+  (fn: (props?: never, ...slots: unknown[]) => C): typeof fn;
   <T extends Pojo>(
-    fn: (props: Props<T>, ...slots: unknown[]) => R,
-  ): (props: ProvidedProps<T>, ...slots: unknown[]) => R;
+    fn: (props: Props<T>, ...slots: unknown[]) => C,
+  ): (props: ProvidedProps<T>, ...slots: unknown[]) => C;
   <T extends Pojo>(
-    fn: (props?: Props<T>, ...slots: unknown[]) => R,
-  ): (props?: ProvidedProps<T>, ...slots: unknown[]) => R;
+    fn: (props?: Props<T>, ...slots: unknown[]) => C,
+  ): (props?: ProvidedProps<T>, ...slots: unknown[]) => C;
 };
 
 /**
