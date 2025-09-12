@@ -15,5 +15,11 @@ addEventListener('popstate', () => {
  */
 export const go = (path: string) => {
   currentPath.value = path;
+
   history.pushState(null, '', path);
 };
+
+/**
+ * Navigates back in the history.
+ */
+export const back = () => history.back();

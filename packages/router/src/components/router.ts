@@ -12,13 +12,13 @@ import { resolve } from '../resolve';
 export const Router = (routes: Route[]): Derived<AwaitableComponent> =>
   // todo: this fires twice on init
   derived(() => {
-    const value = resolve(currentPath.value, routes);
+    const current = resolve(currentPath.value, routes);
 
-    if (!value) {
+    if (!current) {
       throw new Error(`@ben-js/router → no route resolved for '${currentPath.value}'`);
     }
 
-    return typeof value.route.component === 'function'
-      ? value.route.component(value.ctx)
-      : value.route.component;
+    return typeof current.route.component === 'function'
+      ? current.route.component(current.ctx)
+      : current.route.component;
   });
