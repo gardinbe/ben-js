@@ -38,7 +38,7 @@ export const isStaticProp = (value: unknown): value is StaticProp =>
   typeof value === 'object' && !!value && StaticPropSymbol in value;
 
 /**
- * Creates and returns a static property.
+ * Creates a static property.
  * @param value Value.
  * @returns Static property.
  */
@@ -51,12 +51,12 @@ export const staticProp = <T>(value: T): StaticProp<T> => ({
  * Represents a property provided to a component.
  * @template T Value type.
  */
-export type ProvidedProp<T> = Reactive<T> | T;
+export type ProvidedProp<T = unknown> = Reactive<Exclude<T, undefined>> | T;
 
 /**
  * Represents an object with properties provided to a component.
  * @template T Object type.
  */
-export type ProvidedProps<T> = {
+export type ProvidedProps<T = Pojo> = {
   [K in keyof T]: ProvidedProp<T[K]>;
 };

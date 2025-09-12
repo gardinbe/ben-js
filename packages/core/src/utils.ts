@@ -1,4 +1,4 @@
-import { type Derived, derived, isReactive } from '@ben-js/reactivity';
+import { derived, isReactive, type Reactive } from '@ben-js/reactivity';
 
 import { type HTMLAttributes } from './attributes';
 import { type Props } from './props';
@@ -11,9 +11,14 @@ export type Pojo = {
 };
 
 /**
- * Creates and returns a string of HTML attributes.
+ * Represents a UUID.
+ */
+export type UUID = ReturnType<typeof crypto.randomUUID>;
+
+/**
+ * Creates a reactive HTML attributes string derived from the provided attributes object.
  * @param obj Object of attributes.
- * @returns String of HTML attributes.
+ * @returns Reactive HTML attributes string.
  * @example
  * attributes({
  *   id: 'my-id',
@@ -22,7 +27,7 @@ export type Pojo = {
  * });
  * // id='my-id' class='my-class' style='background: red;'
  */
-export const attributes = (obj: Props<HTMLAttributes>): Derived<string> =>
+export const attributes = (obj: Props<HTMLAttributes>): Reactive<string> =>
   derived(() =>
     Object.entries(obj)
       .filter(([, value]) => value.value !== undefined)
@@ -31,14 +36,14 @@ export const attributes = (obj: Props<HTMLAttributes>): Derived<string> =>
   );
 
 /**
- * Creates and returns a reactive class name string composed of the provided class names.
+ * Creates a reactive class name string derived from the provided class names.
  * @param classes Class names.
  * @returns Reactive class name string.
  * @example
  * cn('my-class', null, false, 'my-other-class');
  * // my-class my-other-class
  */
-export const cn = (...classes: unknown[]): Derived<string> =>
+export const cn = (...classes: unknown[]): Reactive<string> =>
   derived(() =>
     classes
       .map((cls) => (isReactive(cls) ? cls.value : cls))

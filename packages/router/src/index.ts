@@ -1,5 +1,6 @@
-export { Link } from './components/link';
-export { Router } from './components/router';
+export { Link } from './components/Link';
+export { Router } from './components/Router';
+export { define } from './define';
 export {
   back,
   currentRoute,
@@ -9,9 +10,7 @@ export {
   resolve,
   type ResolvedRoute,
   type Route,
-  route,
-  type RouteComponent,
   type RouteContext,
-  setRoutes,
+  type RouteDefinition,
+  useRoutes,
 } from './route';
-export { def } from './utils';

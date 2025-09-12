@@ -1,5 +1,7 @@
 import { type Reactive, reactive, watch } from '@ben-js/reactivity';
 
+import { type UUID } from './utils';
+
 /**
  * Represents a function that binds an event listener to an element.
  * @template E Element type.
@@ -42,6 +44,11 @@ export type Ref<E extends HTMLElement = HTMLElement> = {
   on: EventListenerBinder<E>;
 
   readonly [RefSymbol]: true;
+
+  /**
+   * Unique identifier.
+   */
+  uuid: UUID;
 };
 
 /**
@@ -58,11 +65,12 @@ export const isRef = (value: unknown): value is Ref =>
   typeof value === 'object' && !!value && RefSymbol in value;
 
 /**
- * Creates and returns a reactive element reference.
+ * Creates a reactive element reference.
  * @returns Element reference.
  */
 export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   const el: Ref<E>['el'] = reactive(null);
+  const uuid = crypto.randomUUID();
   const listeners: Listener[] = [];
 
   const on: Ref<E>['on'] = (type, callback, options) => {
@@ -72,9 +80,8 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
       options,
       type,
     };
-    const exists = isSet(listener);
 
-    if (exists) {
+    if (isSet(listener)) {
       return;
     }
 
@@ -89,9 +96,8 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
       options,
       type,
     };
-    const exists = isSet(listener);
 
-    if (!exists) {
+    if (!isSet(listener)) {
       return;
     }
 
@@ -120,6 +126,7 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
     off,
     on,
     [RefSymbol]: true,
+    uuid,
   };
 };
 
