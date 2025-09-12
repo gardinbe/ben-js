@@ -1,15 +1,15 @@
-import { type Reactive, reactive, ctx } from './reactive';
+import { ctx, type Reactive, reactive } from './reactive';
 
 /**
  * Represents a derived reactive.
- * @template T Type of the reactive value.
+ * @template T Value type.
  */
 export type Derived<T = unknown> = Omit<Reactive<T>, 'value'> &
   Readonly<Pick<Reactive<T>, 'value'>>;
 
 /**
  * Represents a function that returns a value derived from reactive side effects.
- * @template T Type of the derived value.
+ * @template T Value type.
  */
 export type DerivedEffect<T = unknown> = (prev?: T) => T;
 

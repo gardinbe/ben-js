@@ -2,18 +2,11 @@ import { subscribe, subscriptions } from './subscriptions';
 
 /**
  * Represents a reactive.
- * @template T Type of the reactive value.
+ * @template T Value type.
  */
 export type Reactive<T = unknown> = {
-  /**
-   * Value of the reactive.
-   */
-  value: T;
-
-  /**
-   * @internal
-   */
   readonly [ReactiveSymbol]: true;
+  value: T;
 };
 
 /**
@@ -38,7 +31,8 @@ export const reactive = <T>(value: T): Reactive<T> => {
   let _value: T = value;
 
   return {
-    get value() {
+    [ReactiveSymbol]: true,
+    get value(): T {
       track(this);
       return _value;
     },
@@ -46,7 +40,6 @@ export const reactive = <T>(value: T): Reactive<T> => {
       _value = next;
       trigger(this);
     },
-    [ReactiveSymbol]: true
   };
 };
 
@@ -55,17 +48,13 @@ export const reactive = <T>(value: T): Reactive<T> => {
  */
 export type Effect = () => void;
 
-/**
- * The currently active effect.
- * @internal
- */
 let activeEffect: Effect | null = null;
 
 /**
  * Subscribes the active effect to the provided reactive value.
  * @param reactive Reactive value to subscribe to.
  */
-export const track = <T extends Reactive>(reactive: T): void => {
+export const track = (reactive: Reactive): void => {
   if (!activeEffect) {
     return;
   }
@@ -77,11 +66,13 @@ export const track = <T extends Reactive>(reactive: T): void => {
  * Triggers the effects subscribed to the provided reactive value.
  * @param reactive Reactive value to trigger effects for.
  */
-export const trigger = <T extends Reactive>(reactive: T): void => {
+export const trigger = (reactive: Reactive): void => {
   const subscribers = subscriptions.get(reactive);
   const effect = activeEffect;
   activeEffect = null;
-  subscribers?.forEach((subscriber) => subscriber());
+  subscribers?.forEach((subscriber) => {
+    subscriber();
+  });
   activeEffect = effect;
 };
 

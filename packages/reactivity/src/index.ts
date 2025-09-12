@@ -1,13 +1,13 @@
-export { type Derived, type DerivedEffect, derived } from './derived';
+export { type Derived, derived, type DerivedEffect } from './derived';
 export {
-  type Effect,
-  type Reactive,
-  ReactiveSymbol,
   ctx,
-  reactive,
+  type Effect,
   isReactive,
+  type Reactive,
+  reactive,
+  ReactiveSymbol,
   track,
-  trigger
+  trigger,
 } from './reactive';
 export { subscribe, subscriptions, unsubscribe } from './subscriptions';
-export { type WatchFunction, type Watcher, watch } from './watch';
+export { watch, type Watcher, type WatchFunction } from './watch';

@@ -1,31 +1,35 @@
-import { derived, watch, type Reactive } from '@ben-js/reactivity';
-import { ChildComponentMarker, ComponentMarker } from '../_internal/constants';
-import { ComponentSymbol, type Component } from '../component';
+import { derived, type Reactive, watch } from '@ben-js/reactivity';
+
+import {
+  ChildComponentMarker,
+  type Component,
+  ComponentMarker,
+  ComponentSymbol,
+} from '../component';
 
 /**
  * Creates and returns a dynamic component.
- * @param reactive Function which returns an array of components.
+ * @param reactive Reactive array of keyed components.
  * @returns Dynamic component.
  */
 export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
   const marker = document.createComment(ComponentMarker);
-  // todo: consider not using watcher
   const members = derived<Map<Key, Component>>(
     (prev) =>
-      new Map(reactive.value.map((item) => [item.key, prev?.get(item.key) ?? item.component]))
+      new Map(reactive.value.map((item) => [item.key, prev?.get(item.key) ?? item.component])),
   );
 
   const mount: Component['mount'] = (arg) => {
     const targetNode = typeof arg === 'string' ? document.querySelector(arg) : arg;
 
     if (!targetNode) {
-      throw new Error('ben-js → missing mount node');
+      throw new Error('ben-js: missing mount node');
     }
 
     const parent = targetNode.parentNode;
 
     if (!parent) {
-      throw new Error('ben-js → mount node has no parent');
+      throw new Error('ben-js: mount node has no parent');
     }
 
     parent.replaceChild(marker, targetNode);
@@ -33,20 +37,20 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
   };
 
   const unmount: Component['unmount'] = () => {
-    members.value.forEach((member) => member.unmount());
+    members.value.forEach((member) => {
+      member.unmount();
+    });
     const parent = marker.parentNode;
     parent?.removeChild(marker);
   };
 
   const render: Component['render'] = () => {
-    members.value.forEach((member) => member.render());
+    members.value.forEach((member) => {
+      member.render();
+    });
   };
 
-  /**
-   * Mounts a member.
-   * @internal
-   */
-  const mountMember = (member: Component) => {
+  const mountMember = (member: Component): void => {
     const parent = marker.parentNode;
 
     if (!parent) {
@@ -59,27 +63,35 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
   };
 
   watch(members, (next, prev) => {
-    [...prev].filter(([key]) => !next.has(key)).forEach(([, member]) => member.unmount());
-    [...next].filter(([key]) => !prev.has(key)).forEach(([, member]) => mountMember(member));
+    [...prev]
+      .filter(([key]) => !next.has(key))
+      .forEach(([, member]) => {
+        member.unmount();
+      });
+    [...next]
+      .filter(([key]) => !prev.has(key))
+      .forEach(([, member]) => {
+        mountMember(member);
+      });
   });
 
   return {
+    [ComponentSymbol]: true,
     mount,
-    unmount,
     render,
-    [ComponentSymbol]: true
+    unmount,
   };
 };
 
 /**
  * Represents a unique key.
  */
-export type Key = string | number | symbol;
+export type Key = number | string | symbol;
 
 /**
  * Represents a keyed component.
  */
 export type KeyedComponent = {
-  key: Key;
   component: Component;
+  key: Key;
 };

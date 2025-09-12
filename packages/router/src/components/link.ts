@@ -1,4 +1,5 @@
-import { attrs, component, html, ref, type HTMLAnchorAttributes } from '@ben-js/core';
+import { attributes, component, html, type HTMLAnchorAttributes, ref } from '@ben-js/core';
+
 import { go } from '../route';
 
 /**
@@ -7,14 +8,14 @@ import { go } from '../route';
  * @param slot Slot content.
  * @returns Link component.
  */
-export const Link = component((props: HTMLAnchorAttributes, slot) => {
+export const Link = component<HTMLAnchorAttributes>((props, slot) => {
   const a = ref();
 
   a.on('click', (ev) => {
     ev.preventDefault();
-    go(props.href);
+    go(props.href.value);
   });
 
   // prettier-ignore
-  return html`<a ref="${a}" ${attrs(props)}>${slot}</a>`;
+  return html`<a ref="${a}" ${attributes(props)}>${slot}</a>`;
 });

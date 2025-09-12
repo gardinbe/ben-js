@@ -1,25 +1,27 @@
 import { type Reactive, reactive, watch } from '@ben-js/reactivity';
-import { equalListeners } from './_internal/utils/same-listener';
-import { type EventMap, type Listener } from './types/listener';
+
+/**
+ * Represents a function that binds an event listener to an element.
+ * @template E Element type.
+ */
+export type EventListenerBinder<E extends HTMLElement> = <
+  TMap extends EventMap<E> = EventMap<E>,
+  TType extends keyof TMap & string = keyof TMap & string,
+>(
+  type: TType,
+  callback: (this: E, ev: TMap[TType]) => unknown,
+  options?: AddEventListenerOptions | boolean,
+) => void;
 
 /**
  * Represents a reactive element reference.
- * @template E Type of the element.
+ * @template E Element type.
  */
 export type Ref<E extends HTMLElement = HTMLElement> = {
   /**
    * Current element reference.
    */
-  readonly el: Reactive<E | null>;
-
-  /**
-   * Attaches an event listener to the element.
-   * @param type Event type.
-   * @param callback Event handler.
-   * @param options Event listener options.
-   * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
-   */
-  readonly on: EventListenerBinder<E>;
+  el: Reactive<E | null>;
 
   /**
    * Removes an event listener from the element.
@@ -28,26 +30,19 @@ export type Ref<E extends HTMLElement = HTMLElement> = {
    * @param options Event listener options.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener
    */
-  readonly off: EventListenerBinder<E>;
+  off: EventListenerBinder<E>;
 
   /**
-   * @internal
+   * Attaches an event listener to the element.
+   * @param type Event type.
+   * @param callback Event handler.
+   * @param options Event listener options.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
    */
+  on: EventListenerBinder<E>;
+
   readonly [RefSymbol]: true;
 };
-
-/**
- * Represents a function that binds an event listener to an element.
- * @template E Type of the element.
- */
-export type EventListenerBinder<E extends HTMLElement> = <
-  TMap extends EventMap<E> = EventMap<E>,
-  TType extends keyof TMap & string = keyof TMap & string
->(
-  type: TType,
-  callback: (this: E, ev: TMap[TType]) => unknown,
-  options?: boolean | AddEventListenerOptions
-) => void;
 
 /**
  * Symbol to identify refs.
@@ -71,7 +66,12 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   const listeners: Listener[] = [];
 
   const on: Ref<E>['on'] = (type, callback, options) => {
-    const listener: Listener = { type, callback, options };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const listener: Listener<any, any, any> = {
+      callback,
+      options,
+      type,
+    };
     const exists = isSet(listener);
 
     if (exists) {
@@ -83,7 +83,12 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   };
 
   const off: Ref<E>['off'] = (type, callback, options) => {
-    const listener: Listener = { type, callback, options };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const listener: Listener<any, any, any> = {
+      callback,
+      options,
+      type,
+    };
     const exists = isSet(listener);
 
     if (!exists) {
@@ -94,32 +99,70 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
     listeners.splice(listeners.indexOf(listener), 1);
   };
 
-  /**
-   * Checks if a listener is already set.
-   * @param listener Listener to check.
-   * @returns True if the listener is already set.
-   * @internal
-   */
-  const isSet = (listener: Listener): boolean => listeners.some((p) => equalListeners(p, listener));
+  const isSet = (listener: Listener): boolean => listeners.some((p) => isSameListener(p, listener));
 
   watch(el, (next, prev) => {
     if (prev) {
-      listeners.forEach((listener) =>
-        prev.removeEventListener(listener.type, listener.callback, listener.options)
-      );
+      listeners.forEach((listener) => {
+        prev.removeEventListener(listener.type, listener.callback, listener.options);
+      });
     }
 
     if (next) {
-      listeners.forEach((listener) =>
-        next.addEventListener(listener.type, listener.callback, listener.options)
-      );
+      listeners.forEach((listener) => {
+        next.addEventListener(listener.type, listener.callback, listener.options);
+      });
     }
   });
 
   return {
     el,
-    on,
     off,
-    [RefSymbol]: true
+    on,
+    [RefSymbol]: true,
   };
 };
+
+/**
+ * Represents the event map for an element.
+ * @template E Element type.
+ */
+export type EventMap<E extends Element> = E extends HTMLVideoElement
+  ? HTMLVideoElementEventMap
+  : E extends HTMLMediaElement
+    ? HTMLMediaElementEventMap
+    : E extends HTMLBodyElement
+      ? HTMLBodyElementEventMap
+      : E extends HTMLFrameSetElement
+        ? HTMLFrameSetElementEventMap
+        : E extends SVGElement
+          ? SVGElementEventMap
+          : E extends HTMLElement
+            ? HTMLElementEventMap
+            : E extends Element
+              ? ElementEventMap
+              : never;
+
+/**
+ * Represents a listener for a specific event on an element.
+ * @template E Element type.
+ * @template TEventMap Event map type.
+ * @template TEvent Event type.
+ */
+export type Listener<
+  E extends HTMLElement = HTMLElement,
+  TEventMap extends EventMap<E> = EventMap<E>,
+  TEvent extends Extract<keyof TEventMap, string> = Extract<keyof TEventMap, string>,
+> = {
+  callback: (this: E, ev: TEventMap[TEvent]) => unknown;
+  options?: AddEventListenerOptions | boolean | undefined;
+  type: TEvent;
+};
+
+const isSameListener = (a: Listener, b: Listener): boolean =>
+  a.type === b.type &&
+  a.callback === b.callback &&
+  isListenerCapture(a.options) === isListenerCapture(b.options);
+
+const isListenerCapture = (options: Listener['options']): boolean =>
+  typeof options === 'object' ? !!options.capture : !!options;

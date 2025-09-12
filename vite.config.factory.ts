@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { type UserConfig } from 'vite';
-import dts from 'vite-plugin-dts';
 import banner from 'vite-plugin-banner';
+import dts from 'vite-plugin-dts';
 
 export type CreateViteConfigOptions = {
   /**
@@ -10,57 +10,47 @@ export type CreateViteConfigOptions = {
   path: string;
 };
 
-/**
- * Creates and returns a Vite build config.
- * @returns Vite config.
- * @internal
- */
 export const createViteConfig = async (options: CreateViteConfigOptions): Promise<UserConfig> => {
   const pkg = await getPackageJson(options.path);
   return {
-    root: options.path,
-    plugins: [
-      dts({
-        rollupTypes: true
-      }),
-      banner(createBanner(pkg))
-    ],
     build: {
-      sourcemap: true,
-      outDir: join(options.path, 'dist'),
       lib: {
         entry: join(options.path, 'src/index.ts'),
         fileName: (format) => `index.${format}.js`,
-        formats: ['es', 'cjs']
+        formats: ['es', 'cjs'],
       },
+      outDir: join(options.path, 'dist'),
       rollupOptions: {
-        external: ['ben-js', '@ben-js/core', '@ben-js/reactivity', '@ben-js/router']
-      }
-    }
+        // todo: maybe not externalize on 'ben-js' package
+        external: ['ben-js', '@ben-js/core', '@ben-js/reactivity', '@ben-js/router'],
+      },
+      sourcemap: true,
+    },
+    plugins: [
+      dts({
+        rollupTypes: true,
+      }),
+      banner(createBanner(pkg)),
+    ],
+    root: options.path,
   };
 };
 
-/**
- * Represents a package.json file.
- */
 type Package = {
+  author: string;
   name: string;
   version: string;
-  author: string;
 };
 
-/**
- * Returns the package.json within the given directory.
- * @param path Directory to get package.json from.
- * @returns Package.json object.
- */
 const getPackageJson = async (path: string): Promise<Package> =>
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
   (await import(`file://${join(path, 'package.json')}`, { with: { type: 'json' } })).default;
 
-/**
- * Returns a banner string for the given package.
- * @param pkg Package to create banner for.
- * @returns Banner string.
- */
 const createBanner = (pkg: Package): string =>
-  `/**\n * ${pkg.name}\n * @version ${pkg.version}\n * @author ${pkg.author}\n * @license MIT\n * @copyright ${new Date().getFullYear()} ${pkg.author}\n */`;
+  `/**
+ * ${pkg.name}
+ * @version ${pkg.version}
+ * @author ${pkg.author}
+ * @license MIT
+ * @copyright ${new Date().getFullYear()} ${pkg.author}
+ */`;
