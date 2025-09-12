@@ -7,12 +7,12 @@ import { go } from '../route';
  * @param slot Slot content.
  * @returns Link component.
  */
-export const Link = component<HTMLAnchorAttributes>((props, slot) => {
+export const Link = component((props: HTMLAnchorAttributes, slot) => {
   const a = ref();
 
   a.on('click', (ev) => {
     ev.preventDefault();
-    go(props.href.value);
+    go(props.href);
   });
 
   // prettier-ignore
