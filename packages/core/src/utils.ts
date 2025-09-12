@@ -1,5 +1,7 @@
 import { derived, isReactive, type Reactive } from '@ben-js/reactivity';
 
+import { isStaticProp } from './props';
+
 /**
  * Represents a plain old JavaScript object.
  */
@@ -27,7 +29,7 @@ export type UUID = ReturnType<typeof crypto.randomUUID>;
 export const attributes = (obj: Pojo): Reactive<string> =>
   derived(() =>
     Object.entries(obj)
-      .map(([key, value]) => [key, isReactive(value) ? value.value : value])
+      .map(([key, value]) => [key, isReactive(value) || isStaticProp(value) ? value.value : value])
       .filter(([, value]) => value !== undefined)
       .map(([key, value]) => (key ? `${key}='${value}'` : key))
       .join(' '),
@@ -44,7 +46,7 @@ export const attributes = (obj: Pojo): Reactive<string> =>
 export const cn = (...classes: unknown[]): Reactive<string> =>
   derived(() =>
     classes
-      .map((cls) => (isReactive(cls) ? cls.value : cls))
+      .map((cls) => (isReactive(cls) || isStaticProp(cls) ? cls.value : cls))
       .filter((cls) => !!cls)
       .filter((cls, i, arr) => arr.indexOf(cls) === i)
       .join(' '),
