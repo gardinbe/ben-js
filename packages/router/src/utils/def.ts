@@ -1,5 +1,5 @@
 import { type AwaitableComponent } from '@ben-js/core';
-import { type RouteComponent, type RouteContext } from '../types/route';
+import { type RouteComponent, type RouteContext } from '../route';
 
 /**
  * Returns a function that asynchronously loads a component from a dynamic import with a default

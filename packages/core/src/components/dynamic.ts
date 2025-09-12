@@ -15,8 +15,8 @@ export const Dynamic = (reactive: Reactive<KeyedComponent[]>): Component => {
       new Map(reactive.value.map((item) => [item.key, prev?.get(item.key) ?? item.component]))
   );
 
-  const mount: Component['mount'] = (input) => {
-    const targetNode = typeof input === 'string' ? document.querySelector(input) : input;
+  const mount: Component['mount'] = (arg) => {
+    const targetNode = typeof arg === 'string' ? document.querySelector(arg) : arg;
 
     if (!targetNode) {
       throw new Error('ben-js → missing mount node');

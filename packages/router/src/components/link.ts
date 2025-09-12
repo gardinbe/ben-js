@@ -1,5 +1,5 @@
 import { attrs, html, ref, type Component, type HTMLAttributes } from '@ben-js/core';
-import { go } from '../path';
+import { go } from '../route';
 import { isReactive, type MaybeReactiveObject } from '@ben-js/reactivity';
 
 /**
