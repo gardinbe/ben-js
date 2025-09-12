@@ -25,6 +25,12 @@ export default defineConfig(
       ],
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/no-base-to-string': 'off',
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: false,
+        },
+      ],
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/restrict-template-expressions': 'off',
     },
