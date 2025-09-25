@@ -14,6 +14,14 @@ import {
  * @returns List component.
  */
 export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]>): Component => {
+  const marker = document.createComment(ComponentMarker);
+  const rx = typeof items === 'function' ? derived(items) : items;
+  const members = reactive<Map<PropertyKey, Component>>(new Map());
+  const hooks = {
+    mounted: new Set<HookFunction>(),
+    unmounted: new Set<HookFunction>(),
+  };
+
   const mount: Component['mount'] = (target) => {
     const targetNode = typeof target === 'string' ? document.querySelector(target) : target;
 
@@ -31,7 +39,7 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
     members.value.forEach((member) => {
       mountMember(member);
     });
-    callbacks.mounted.forEach((fn) => {
+    hooks.mounted.forEach((fn) => {
       fn();
     });
   };
@@ -41,7 +49,7 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
       member.unmount();
     });
     marker.remove();
-    callbacks.unmounted.forEach((fn) => {
+    hooks.unmounted.forEach((fn) => {
       fn();
     });
   };
@@ -71,9 +79,6 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
     member.mount(memberMarker);
   };
 
-  const marker = document.createComment(ComponentMarker);
-  const rx = typeof items === 'function' ? derived(items) : items;
-  const members = reactive<Map<PropertyKey, Component>>(new Map());
   watch(
     rx,
     (next, prev) => {
@@ -101,24 +106,17 @@ export const List = (items: (() => KeyedComponent[]) | Reactive<KeyedComponent[]
     },
   );
 
-  const callbacks = {
-    mounted: new Set<HookFunction>(),
-    unmounted: new Set<HookFunction>(),
-  };
-
-  const hooks: Component['hooks'] = {
-    mounted: (fn: HookFunction): void => {
-      callbacks.mounted.add(fn);
-    },
-    unmounted: (fn: HookFunction): void => {
-      callbacks.unmounted.add(fn);
-    },
-  };
-
   return {
     [ComponentSymbol]: true,
     destroy,
-    hooks,
+    hooks: {
+      mounted: (fn: HookFunction): void => {
+        hooks.mounted.add(fn);
+      },
+      unmounted: (fn: HookFunction): void => {
+        hooks.unmounted.add(fn);
+      },
+    },
     mount,
     render,
     unmount,

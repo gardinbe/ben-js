@@ -12,7 +12,18 @@ export type Pojo = {
 /**
  * Represents a UUID.
  */
-export type UUID = ReturnType<typeof crypto.randomUUID>;
+export type UUID = `${string}-${string}-${string}-${string}-${string}`;
+
+/**
+ * Creates a v4 UUID.
+ * @returns UUID.
+ */
+export const createUUID = (): UUID =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  }) as UUID;
 
 /**
  * Creates a reactive HTML attributes string derived from the provided attributes object.

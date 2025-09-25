@@ -6,10 +6,11 @@ export { type KeyedComponent, List } from './components/List';
 export { Swap } from './components/Swap';
 export {
   isStaticProp,
+  normalize,
+  type NormalizedProp,
+  type NormalizedProps,
   type Prop,
   type Props,
-  type ProvidedProp,
-  type ProvidedProps,
   type StaticProp,
   staticProp,
 } from './props';
@@ -21,5 +22,4 @@ export {
   type Ref,
   ref,
 } from './ref';
-export { attributes, cn } from './utils';
-export { component, type ComponentWrapper } from './wrapper';
+export { attributes, cn, type Pojo, type UUID } from './utils';

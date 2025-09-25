@@ -78,6 +78,19 @@ export const isComponent = (value: unknown): value is Component =>
  * @returns Component.
  */
 export const html = (strings: TemplateStringsArray, ...values: unknown[]): Component => {
+  const parts: TemplateParts = {
+    strings,
+    values,
+  };
+  const marker = document.createComment(ComponentMarker);
+  let nodes: ChildNode[] = [];
+  let content: ComponentContent | null = null;
+  let mounted = false;
+  const hooks = {
+    mounted: new Set<HookFunction>(),
+    unmounted: new Set<HookFunction>(),
+  };
+
   const mount: Component['mount'] = (target) => {
     const targetNode = typeof target === 'string' ? document.querySelector(target) : target;
 
@@ -102,7 +115,7 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
       parent.insertBefore(node, marker);
     });
     mounted = true;
-    callbacks.mounted.forEach((fn) => {
+    hooks.mounted.forEach((fn) => {
       fn();
     });
   };
@@ -116,7 +129,7 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     });
     marker.remove();
     mounted = false;
-    callbacks.unmounted.forEach((fn) => {
+    hooks.unmounted.forEach((fn) => {
       fn();
     });
   };
@@ -126,12 +139,16 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
       unsubscribe(rx, render);
     });
 
-    withDifference(newContent?.reactives, content?.reactives, (rx) => {
-      subscribe(rx, render);
+    withDifference(content?.refs, newContent?.refs, (ref) => {
+      ref.el.value = null;
     });
 
     withDifference(content?.components, newContent?.components, (component) => {
       component.destroy();
+    });
+
+    withDifference(newContent?.reactives, content?.reactives, (rx) => {
+      subscribe(rx, render);
     });
   };
 
@@ -173,35 +190,19 @@ export const html = (strings: TemplateStringsArray, ...values: unknown[]): Compo
     }
   };
 
-  const parts: TemplateParts = {
-    strings,
-    values,
-  };
-  const marker = document.createComment(ComponentMarker);
-  let nodes: ChildNode[] = [];
-  let content: ComponentContent | null = null;
-  let mounted = false;
-
-  const callbacks = {
-    mounted: new Set<HookFunction>(),
-    unmounted: new Set<HookFunction>(),
-  };
-
-  const hooks: Component['hooks'] = {
-    mounted: (fn: HookFunction): void => {
-      callbacks.mounted.add(fn);
-    },
-    unmounted: (fn: HookFunction): void => {
-      callbacks.unmounted.add(fn);
-    },
-  };
-
   render();
 
   return {
     [ComponentSymbol]: true,
     destroy,
-    hooks,
+    hooks: {
+      mounted: (fn: HookFunction): void => {
+        hooks.mounted.add(fn);
+      },
+      unmounted: (fn: HookFunction): void => {
+        hooks.unmounted.add(fn);
+      },
+    },
     mount,
     render,
     unmount,
@@ -271,7 +272,7 @@ const createContent = (parts: TemplateParts): ComponentContent => {
   };
 };
 
-const stringify = (value: unknown): string => (value != null ? `${value}` : '');
+const stringify = (value: unknown): string => (value != null && value !== false ? `${value}` : '');
 
 const getMarkers = (node: Node, text: string): Comment[] => {
   const comments =

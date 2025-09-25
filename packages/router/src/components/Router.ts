@@ -12,7 +12,6 @@ export const Router = (): Component => {
   subscribe(currentRoute, () => {
     component.value = create();
   });
-
   return Swap(component);
 };
 
@@ -25,6 +24,5 @@ const create = (): Component => {
 
   const route = resolved.route.component;
   const component = typeof route === 'function' ? route(resolved.ctx) : route;
-
   return isComponent(component) ? component : Deferred(component);
 };

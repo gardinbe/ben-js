@@ -55,10 +55,13 @@ export type RouteDefinition = {
   path: string;
 };
 
-const currentRoutes = reactive<RouteDefinition[]>([]);
+/**
+ * Currently available routes.
+ */
+export const currentRoutes = reactive<RouteDefinition[]>([]);
 
 /**
- * Uses the provided routes for the router.
+ * Sets the routes to use.
  * @param routes Routes to use.
  */
 export const useRoutes = (routes: RouteDefinition[]): void => {
@@ -66,11 +69,18 @@ export const useRoutes = (routes: RouteDefinition[]): void => {
 };
 
 /**
- * Resolves a path to a route and context.
+ * Resolves a path to a route.
  * @param path Path to resolve.
- * @returns Resolved route and context, or null if no route is found.
+ * @returns Resolved route, or null if no route is found.
  */
 export const resolve = (path: string): null | ResolvedRoute => {
+  const segments = path.split('/').filter((segment) => segment);
+
+  // todo:
+  // - allow children of dynamic routes
+  // - support query params
+  // - middleware
+
   const resolveSegment = (segment: string, routes: RouteDefinition[]): null | ResolvedRoute => {
     for (const route of routes) {
       if (route.path === '*') {
@@ -108,7 +118,6 @@ export const resolve = (path: string): null | ResolvedRoute => {
     return null;
   };
 
-  const segments = path.split('/').filter((segment) => segment);
   return resolveSegment(segments.shift() ?? '', currentRoutes.value);
 };
 
@@ -117,7 +126,7 @@ const DynamicSegmentPattern = /^\[(.*)\]$/;
 const currentPath = reactive(location.pathname);
 
 /**
- * Represents the current route.
+ * Currently active route.
  */
 export const currentRoute = derived(() => resolve(currentPath.value));
 

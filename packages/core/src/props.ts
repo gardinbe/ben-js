@@ -1,19 +1,21 @@
-import { type Reactive } from '@ben-js/reactivity';
+import { isReactive, type Reactive } from '@ben-js/reactivity';
 
 import { type Pojo } from './utils';
 
 /**
- * Represents a component property.
+ * Represents a normalized component property.
  * @template T Value type.
  */
-export type Prop<T = unknown> = Reactive<T> | StaticProp<T>;
+export type NormalizedProp<T = unknown> = Reactive<T> | StaticProp<T>;
 
 /**
- * Represents an object with component properties.
+ * Represents an object with normalized component properties.
  * @template T Object type.
  */
-export type Props<T = Pojo> = {
-  readonly [K in keyof T]: Prop<T[K]>;
+export type NormalizedProps<T = Pojo> = {
+  readonly [K in keyof T]: T[K] extends undefined
+    ? undefined
+    : NormalizedProp<Exclude<T[K], undefined>>;
 };
 
 /**
@@ -48,15 +50,28 @@ export const staticProp = <T>(value: T): StaticProp<T> => ({
 });
 
 /**
- * Represents a property to be provided to a component.
+ * Represents a component property.
  * @template T Value type.
  */
-export type ProvidedProp<T = unknown> = Reactive<Exclude<T, undefined>> | T;
+export type Prop<T = unknown> = Reactive<T> | T;
 
 /**
- * Represents an object with properties to be provided to a component.
+ * Represents an object with component properties.
  * @template T Object type.
  */
-export type ProvidedProps<T = Pojo> = {
-  [K in keyof T]: ProvidedProp<T[K]>;
+export type Props<T = Pojo> = {
+  [K in keyof T]: T[K] extends undefined ? undefined : Prop<Exclude<T[K], undefined>>;
 };
+
+/**
+ * Normalizes the provided component properties.
+ * @param props Component properties.
+ * @returns Normalized component properties.
+ */
+export const normalize = <T>(props: Props<T>): NormalizedProps<T> =>
+  Object.fromEntries(
+    Object.entries(props).map(([key, value]) => [
+      key,
+      isReactive(value) ? value : staticProp(value),
+    ]),
+  ) as NormalizedProps<T>;
