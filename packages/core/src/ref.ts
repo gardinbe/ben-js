@@ -146,7 +146,8 @@ export type EventMap<E extends Element> = E extends HTMLVideoElement
     ? HTMLMediaElementEventMap
     : E extends HTMLBodyElement
       ? HTMLBodyElementEventMap
-      : E extends HTMLFrameSetElement
+      : // eslint-disable-next-line @typescript-eslint/no-deprecated
+        E extends HTMLFrameSetElement
         ? HTMLFrameSetElementEventMap
         : E extends SVGElement
           ? SVGElementEventMap

@@ -1,10 +1,11 @@
 import js from '@eslint/js';
+import gitignore from 'eslint-config-flat-gitignore';
 import perfectionist from 'eslint-plugin-perfectionist';
 import { defineConfig } from 'eslint/config';
 import ts from 'typescript-eslint';
 
 export default defineConfig(
-  { ignores: ['**/dist'] },
+  gitignore(),
   js.configs['recommended'],
   ts.configs['strictTypeChecked'],
   perfectionist.configs['recommended-natural'],
@@ -12,7 +13,6 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {

@@ -1,28 +1,40 @@
 {
   "compilerOptions": {
-    // features
+    // emit
     "noEmit": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
+
+    // module
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "allowArbitraryExtensions": true,
     "allowImportingTsExtensions": true,
-    "isolatedModules": true,
     "resolveJsonModule": true,
+    "noUncheckedSideEffectImports": true,
     "verbatimModuleSyntax": false,
     "moduleDetection": "force",
+
+    // interop constraints
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "erasableSyntaxOnly": true,
+
+    // language and environment
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "erasableSyntaxOnly": true,
-    "alwaysStrict": true,
+    "jsx": "preserve",
+    "useDefineForClassFields": true,
+
+    // javascript support
     "allowJs": true,
     "checkJs": false,
-    "jsx": "preserve",
 
-    // highlighting
+    // type checking
+    "alwaysStrict": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "exactOptionalPropertyTypes": true,
-    "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitOverride": true,
@@ -30,7 +42,6 @@
     "noImplicitThis": true,
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": true,
-    "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strict": true,
@@ -39,7 +50,6 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "useDefineForClassFields": true,
     "useUnknownInCatchVariables": true
   }
 }
