@@ -1,14 +1,14 @@
-import { derived, watch, type Reactive } from '@ben-js/reactivity';
+import { derived, type Reactive, watch } from '@ben-js/reactivity';
 
 import {
   ComponentDevState,
   ANONYMOUS_COMPONENT_NAME,
+  type Component,
   ComponentSymbol,
-  ComponentHookFunction,
+  type ComponentHookFunction,
   inDocument,
   COMPONENT_MEMBER_MARKER,
   COMPONENT_MEMBERS_MARKER,
-  type Component,
   type ComponentUsePayload,
   type ComponentMountTarget,
   getMountNodes,
@@ -16,8 +16,9 @@ import {
 import { getCallerFunctionName } from '../dev';
 import { ComponentType, IS_DEV, logEvent, LogEventType, randomHexColor } from '../dev';
 
-export const Swap = (item: (() => Component | null) | Reactive<Component | null>): Component => {
-  const memberComponent = typeof item === 'function' ? derived(item) : item;
+export const Dynamic = <T>({ items, transform, diff }: DynamicPayload<T>): Component => {
+  const members = typeof items === 'function' ? derived(items) : items;
+  const memberComponents = () => members.value.map(transform);
 
   const marker = document.createComment(COMPONENT_MEMBERS_MARKER);
   let isMounted = false;
@@ -31,10 +32,10 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
     ? {
         name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
         get children() {
-          return memberComponent.value ? [memberComponent.value] : [];
+          return memberComponents();
         },
         color: randomHexColor(),
-        type: ComponentType.SWAP,
+        type: ComponentType.DYNAMIC,
       }
     : null;
 
@@ -48,9 +49,9 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
     const { target, parent } = getMountNodes(node, DEV);
     parent.replaceChild(marker, target);
 
-    if (memberComponent.value) {
-      add(memberComponent.value, parent);
-    }
+    memberComponents().forEach((component) => {
+      add(component, parent);
+    });
 
     if (!inDocument(marker)) {
       setDisconnected();
@@ -65,7 +66,9 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
       return;
     }
 
-    memberComponent.value?.setConnected();
+    memberComponents().forEach((component) => {
+      component.setConnected();
+    });
 
     logEvent(LogEventType.CONNECTED, DEV);
     hooks.connected.forEach((fn) => {
@@ -78,7 +81,9 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
       return;
     }
 
-    memberComponent.value?.setDisconnected();
+    memberComponents().forEach((component) => {
+      component.setDisconnected();
+    });
 
     logEvent(LogEventType.DISCONNECTED, DEV);
     hooks.disconnected.forEach((fn) => {
@@ -87,12 +92,16 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
   };
 
   const unmount = () => {
-    memberComponent.value?.unmount();
+    memberComponents().forEach((component) => {
+      component.unmount();
+    });
     marker.remove();
   };
 
   const destroy = () => {
-    memberComponent.value?.destroy();
+    memberComponents().forEach((component) => {
+      component.destroy();
+    });
     marker.remove();
     logEvent(LogEventType.DESTROYED, DEV);
   };
@@ -109,19 +118,26 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
     return c;
   };
 
-  watch(memberComponent, (next, prev) => {
-    if (!next || next === prev) {
-      return;
-    }
-
+  watch(members, (next, prev) => {
     const parent = marker.parentNode;
 
     if (!parent) {
       return;
     }
 
-    prev?.destroy();
-    add(next, parent);
+    prev
+      .filter(diff.removeOld(next))
+      .map(transform)
+      .forEach((component) => {
+        component.destroy();
+      });
+
+    next
+      .filter(diff.addNew(prev))
+      .map(transform)
+      .forEach((component) => {
+        add(component, parent);
+      });
   });
 
   const c: Component = {
@@ -139,4 +155,20 @@ export const Swap = (item: (() => Component | null) | Reactive<Component | null>
   }
 
   return c;
+};
+
+export type DynamicPayload<T> = {
+  items: (() => T[]) | Reactive<T[]>;
+  transform: (item: T) => Component;
+  diff: DynamicPayloadDiff<T>;
+};
+
+export type DynamicPayloadDiff<T> = {
+  removeOld: (next: T[]) => (prevItem: T) => boolean;
+  addNew: (prev: T[]) => (nextItem: T) => boolean;
+};
+
+export type KeyedComponent = {
+  component: Component;
+  key: PropertyKey;
 };

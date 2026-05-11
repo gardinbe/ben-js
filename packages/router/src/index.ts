@@ -1,16 +1,15 @@
-export { Link, type LinkProps } from './components/Link';
-export { Router } from './components/Router';
-export { define } from './define';
+export { Link } from './components/Link';
+export { Router, Route } from './components/Router';
+export { define, type ExportedRouteComponent } from './define';
 export {
   back,
   currentRoute,
   currentRoutes,
   go,
-  isActive,
+  isActivePath,
   resolve,
   type ResolvedRoute,
-  type Route,
+  type RouteComponent,
   type RouteContext,
   type RouteDefinition,
-  useRoutes,
 } from './route';

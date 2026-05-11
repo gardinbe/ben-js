@@ -1,5 +1,5 @@
 import {
-  attributes,
+  attrs,
   type Component,
   html,
   type HTMLAnchorAttributes,
@@ -10,15 +10,7 @@ import {
 
 import { go } from '../route';
 
-export type LinkProps = Props<HTMLAnchorAttributes>;
-
-/**
- * Creates a Link component.
- * @param props Link props.
- * @param slot Slot content.
- * @returns Link component.
- */
-export const Link = (props: LinkProps, slot: unknown): Component => {
+export const Link = (props: Props<HTMLAnchorAttributes>, slot: unknown): Component => {
   const { href } = normalize(props);
   const a = ref();
 
@@ -29,7 +21,7 @@ export const Link = (props: LinkProps, slot: unknown): Component => {
 
   return html`<a
     ref="${a}"
-    ${attributes(props)}
+    ${attrs(props)}
     >${slot}</a
   > `;
 };

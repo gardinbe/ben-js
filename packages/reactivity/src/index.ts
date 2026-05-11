@@ -11,4 +11,11 @@ export {
   trigger,
 } from './reactive';
 export { subscribe, subscriptions, unsubscribe } from './subscriptions';
-export { watch, type Watcher, type WatchFunction, type WatchOptions } from './watch';
+export {
+  watch,
+  type Watch,
+  type Watcher,
+  type WatchFunction,
+  type WatchImmediateOptions,
+  type WatchOptions,
+} from './watch';

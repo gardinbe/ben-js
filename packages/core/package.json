@@ -15,11 +15,8 @@
     "dist"
   ],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.es.js",
-      "require": "./dist/index.cjs.js"
-    }
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
   },
   "dependencies": {
     "@ben-js/reactivity": "workspace:*"

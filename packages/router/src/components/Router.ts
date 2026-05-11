@@ -1,28 +1,27 @@
-import { type Component, Deferred, isComponent, Swap } from '@ben-js/core';
+import { type Component, Swap } from '@ben-js/core';
 import { reactive, subscribe } from '@ben-js/reactivity';
+import { currentRoute, useRoutes, type RouteDefinition } from '../route';
+import { createError, ErrorType } from '../error';
 
-import { currentRoute } from '../route';
+export const Router = (routes: RouteDefinition[], routeComponent: () => Component) => {
+  useRoutes(routes);
+  const component = reactive(routeComponent());
 
-/**
- * Creates a reactive component for the current route.
- * @returns Reactive component.
- */
-export const Router = (): Component => {
-  const component = reactive(create());
   subscribe(currentRoute, () => {
-    component.value = create();
+    component.value = routeComponent();
   });
+
   return Swap(component);
 };
 
-const create = (): Component => {
+export const Route = () => {
   const resolved = currentRoute.value;
 
   if (!resolved) {
-    throw new Error(`@ben-js/router → no route resolved`);
+    throw createError(ErrorType.MISSING_ROUTE);
   }
 
   const route = resolved.route.component;
   const component = typeof route === 'function' ? route(resolved.ctx) : route;
-  return isComponent(component) ? component : Deferred(component);
+  return component;
 };

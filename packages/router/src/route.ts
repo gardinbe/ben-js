@@ -1,165 +1,112 @@
 import { type Component } from '@ben-js/core';
 import { derived, reactive } from '@ben-js/reactivity';
 
-/**
- * Represents a resolved route.
- */
 export type ResolvedRoute = {
-  /**
-   * Current route context.
-   */
-  ctx: RouteContext;
-
-  /**
-   * Route definition.
-   */
   route: RouteDefinition;
+  ctx: RouteContext;
 };
 
-/**
- * Represents a route component/component constructor.
- */
-export type Route =
+export type RouteDefinition = {
+  path: string;
+  component: RouteComponent;
+  children?: RouteDefinition[];
+};
+
+export type RouteContext = {
+  [key: string]: string;
+};
+
+export type RouteComponent =
   | ((ctx: RouteContext) => Component)
   | ((ctx: RouteContext) => Promise<Component>)
   | Component
   | Promise<Component>;
 
-/**
- * Represents a route context.
- */
-export type RouteContext = {
-  /**
-   * Current value of the dynamic route segment if present.
-   */
-  [key: string]: string;
-};
-
-/**
- * Represents a route definition.
- */
-export type RouteDefinition = {
-  /**
-   * Children of the route.
-   */
-  children?: RouteDefinition[];
-
-  /**
-   * Component of the route.
-   */
-  component: Route;
-
-  /**
-   * Path of the route.
-   */
-  path: string;
-};
-
-/**
- * Currently available routes.
- */
 export const currentRoutes = reactive<RouteDefinition[]>([]);
 
-/**
- * Sets the routes to use.
- * @param routes Routes to use.
- */
 export const useRoutes = (routes: RouteDefinition[]): void => {
   currentRoutes.value = routes;
 };
 
-/**
- * Resolves a path to a route.
- * @param path Path to resolve.
- * @returns Resolved route, or null if no route is found.
- */
+const DYNAMIC_SEGMENT_PATTERN = /^\[(.*)\]$/;
+
+// todo: allow children of dynamic routes, support query params, middleware
+
 export const resolve = (path: string): null | ResolvedRoute => {
-  const segments = path.split('/').filter((segment) => segment);
+  const segments = path.split('/').filter(Boolean);
 
-  // todo:
-  // - allow children of dynamic routes
-  // - support query params
-  // - middleware
+  if (!segments.length) {
+    segments.push('');
+  }
 
-  const resolveSegment = (segment: string, routes: RouteDefinition[]): null | ResolvedRoute => {
+  const walk = (
+    routes: RouteDefinition[],
+    index = 0,
+    ctx: RouteContext = {},
+  ): null | ResolvedRoute => {
+    const segment = segments[index] ?? '';
+
     for (const route of routes) {
       if (route.path === '*') {
-        return {
-          ctx: {},
-          route,
-        };
+        return { ctx, route };
       }
 
-      const dynamicSegment = route.path.match(DynamicSegmentPattern)?.[1];
+      const param = route.path.match(DYNAMIC_SEGMENT_PATTERN)?.[1];
 
-      if (dynamicSegment) {
-        return {
-          ctx: {
-            [dynamicSegment]: segment,
-          },
-          route,
-        };
+      if (!param && route.path !== segment) {
+        continue;
       }
 
-      if (route.path === segment) {
-        const nextSegment = segments.shift();
+      const nextCtx = param ? { ...ctx, [param]: segment } : ctx;
+      const isLast = index === segments.length - 1;
 
-        if (nextSegment && route.children) {
-          return resolveSegment(nextSegment, route.children);
-        }
+      if (isLast) {
+        return { ctx: nextCtx, route };
+      }
 
-        return {
-          ctx: {},
-          route,
-        };
+      if (!route.children) {
+        continue;
+      }
+
+      const resolved = walk(route.children, index + 1, nextCtx);
+
+      if (resolved) {
+        return resolved;
       }
     }
 
     return null;
   };
 
-  return resolveSegment(segments.shift() ?? '', currentRoutes.value);
+  return walk(currentRoutes.value);
 };
-
-const DynamicSegmentPattern = /^\[(.*)\]$/;
 
 const currentPath = reactive(location.pathname);
 
-/**
- * Currently active route.
- */
 export const currentRoute = derived(() => resolve(currentPath.value));
 
 addEventListener('popstate', () => {
   currentPath.value = location.pathname;
 });
 
-/**
- * Navigates to a path.
- * @param path Path to navigate to.
- */
 export const go = (path: string): void => {
   currentPath.value = path;
   history.pushState(null, '', path);
 };
 
-/**
- * Navigates to the previous route.
- */
 export const back = (): void => {
   history.back();
 };
 
-/**
- * Checks if the provided path is active.
- * @param path Path to check.
- * @returns True if the path is active.
- */
-export const isActive = (path: string): boolean => {
+export const isActivePath = (path: string): boolean => {
   const resolved = resolve(path);
 
-  const find = (route: RouteDefinition): boolean =>
-    route === currentRoute.value?.route || !!route.children?.some(find);
+  if (!currentRoute.value || !resolved) {
+    return false;
+  }
 
-  return !!resolved && find(resolved.route);
+  const walk = (route: RouteDefinition): boolean =>
+    route === currentRoute.value?.route || !!route.children?.some(walk);
+
+  return walk(resolved.route);
 };

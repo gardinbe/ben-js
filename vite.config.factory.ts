@@ -1,12 +1,8 @@
 import { join } from 'node:path';
 import { type UserConfig } from 'vite';
-import banner from 'vite-plugin-banner';
 import dts from 'vite-plugin-dts';
 
 export type CreateViteConfigOptions = {
-  /**
-   * Path to the root directory of the package.
-   */
   path: string;
 };
 
@@ -29,7 +25,7 @@ export const createViteConfig = async (options: CreateViteConfigOptions): Promis
       dts({
         rollupTypes: true,
       }),
-      banner(createBanner(pkg)),
+      // banner(createBanner(pkg)),
     ],
     root: options.path,
   };
@@ -45,11 +41,5 @@ const getPackageJson = async (path: string): Promise<Package> =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
   (await import('file://' + join(path, 'package.json'), { with: { type: 'json' } })).default;
 
-const createBanner = (pkg: Package): string =>
-  `/**
- * ${pkg.name}
- * @version ${pkg.version}
- * @author ${pkg.author}
- * @license MIT
- * @copyright ${new Date().getFullYear()} ${pkg.author}
- */`;
+// todo: create banner here using vite-plugin-banner
+// const createBanner = (pkg: Package): string => ``;

@@ -1,19 +1,16 @@
 export { type HTMLAnchorAttributes, type HTMLAttributes } from './attributes';
-export { type Component, type Hook, type HookFunction, html, isComponent } from './component';
-export { AnonymousList } from './components/AnonymousList';
-export { Deferred } from './components/Deferred';
+export {
+  type Component,
+  type ComponentHook,
+  type ComponentHookFunction,
+  isComponent,
+} from './component';
+export { AnonList } from './components/AnonList';
+export { Suspended } from './components/Suspended';
 export { type KeyedComponent, List } from './components/List';
 export { Swap } from './components/Swap';
-export {
-  isStaticProp,
-  normalize,
-  type NormalizedProp,
-  type NormalizedProps,
-  type Prop,
-  type Props,
-  type StaticProp,
-  staticProp,
-} from './props';
+export { html } from './components/Static';
+export { type NormalizedValues } from './static';
 export {
   type EventListenerBinder,
   type EventMap,
@@ -22,4 +19,5 @@ export {
   type Ref,
   ref,
 } from './ref';
-export { attributes, cn, type Pojo, type UUID } from './utils';
+export { attrs, cn, normalize, type Pojo, type UUID, type Prop, type Props } from './utils';
+export { printTree, enableDevMode, type ComponentType } from './dev';

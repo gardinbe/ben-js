@@ -1,23 +1,16 @@
 import { derived, isReactive, type Reactive } from '@ben-js/reactivity';
+import { isStatic, staticValue, type NormalizedValues } from './static';
 
-import { isStaticProp } from './props';
+// todo: shared package
 
-/**
- * Represents a plain old JavaScript object.
- */
+export type Enum<T> = T[keyof T];
+
 export type Pojo = {
   [key: PropertyKey]: unknown;
 };
 
-/**
- * Represents a UUID.
- */
 export type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
-/**
- * Creates a v4 UUID.
- * @returns UUID.
- */
 export const createUUID = (): UUID =>
   'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -25,40 +18,46 @@ export const createUUID = (): UUID =>
     return v.toString(16);
   }) as UUID;
 
-/**
- * Creates a reactive HTML attributes string derived from the provided attributes object.
- * @param obj Object of attributes.
- * @returns Reactive HTML attributes string.
- * @example
- * attributes({
- *   id: 'my-id',
- *   class: 'my-class',
- *   style: 'background: red;',
- * });
- * // id='my-id' class='my-class' style='background: red;'
- */
-export const attributes = (obj: Pojo): Reactive<string> =>
-  derived(() =>
-    Object.entries(obj)
-      .map(([key, value]) => [key, isReactive(value) || isStaticProp(value) ? value.value : value])
-      .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => (key ? `${key}='${value}'` : key))
-      .join(' '),
-  );
+export type Props<T = Pojo> = {
+  [K in keyof T]: T[K] extends undefined ? undefined : Prop<Exclude<T[K], undefined>>;
+};
 
-/**
- * Creates a reactive class name string derived from the provided class names.
- * @param classes Class names.
- * @returns Reactive class name string.
- * @example
- * cn('my-class', null, false, 'my-other-class');
- * // my-class my-other-class
- */
-export const cn = (...classes: unknown[]): Reactive<string> =>
-  derived(() =>
+export type Prop<T> = Reactive<T> | T;
+
+export const attrs = (obj: Pojo): string | Reactive<string> => {
+  const create = () =>
+    Object.entries(obj)
+      .map(([key, value]) => [key, isReactive(value) || isStatic(value) ? value.value : value])
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => (key ? `${key}="${value}"` : key))
+      .join(' ');
+
+  if (Object.values(obj).some(isReactive)) {
+    return derived(create);
+  }
+
+  return create();
+};
+
+export const cn = (...classes: unknown[]): string | Reactive<string> => {
+  const create = () =>
     classes
-      .map((cls) => (isReactive(cls) || isStaticProp(cls) ? cls.value : cls))
+      .map((cls) => (isReactive(cls) || isStatic(cls) ? cls.value : cls))
       .filter((cls) => !!cls)
       .filter((cls, i, arr) => arr.indexOf(cls) === i)
-      .join(' '),
-  );
+      .join(' ');
+
+  if (classes.some(isReactive)) {
+    return derived(create);
+  }
+
+  return create();
+};
+
+export const normalize = <T>(props: Props<T>): NormalizedValues<T> =>
+  Object.fromEntries(
+    Object.entries(props).map(([key, value]) => [
+      key,
+      isReactive(value) ? value : staticValue(value),
+    ]),
+  ) as NormalizedValues<T>;
