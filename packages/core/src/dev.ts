@@ -1,114 +1,127 @@
-import { Component, type ComponentDevState } from './component';
-import { createError, ErrorType } from './error';
-import type { Enum } from './utils';
+import { type Enum } from '@ben-js/common'
 
-export let IS_DEV = false;
+import { type Component, type ComponentDevState } from './component'
+import { createError, ErrorType } from './error'
+
+export let IS_DEV = false
 
 export const enableDevMode = () => {
-  IS_DEV = true;
-};
+  IS_DEV = true
+}
 
 export const getCallerFunctionName = (): string | null => {
-  const stack = new Error().stack;
+  // oxlint-disable-next-line unicorn/error-message
+  const stack = new Error().stack
 
   if (!stack) {
-    return null;
+    return null
   }
 
   const names = stack
     .split('\n')
     .slice(3)
-    .map((line) => line.match(/at\s+(?:(.*?)\s+\()?[^()]*\)?$/)?.[1]?.trim() ?? null);
+    .map(
+      line => line.match(/at\s+(?:(.*?)\s+\()?[^()]*\)?$/)?.[1]?.trim() ?? null,
+    )
 
-  let closestNamedFunction: string | null = null;
+  let closestNamedFunction: string | null = null
 
   for (const name of names) {
     if (name && name !== '<anonymous>') {
-      closestNamedFunction = name;
-      break;
+      closestNamedFunction = name
+      break
     }
   }
 
   if (!closestNamedFunction) {
-    return null;
+    return null
   }
 
-  const nearestName = names[0];
+  const nearestName = names[0]
 
   if (!nearestName || nearestName === '<anonymous>') {
-    return `${closestNamedFunction}<anonymous>`;
+    return `${closestNamedFunction}<anonymous>`
   }
 
-  return nearestName;
-};
+  return nearestName
+}
 
 export const printTree = (component: Component) => {
   if (!IS_DEV) {
-    throw createError(ErrorType.DEV_MODE_NOT_ENABLED);
+    throw createError(ErrorType.DEV_MODE_NOT_ENABLED)
   }
 
-  const lines: string[] = [];
-  const colors: string[] = [];
+  const lines: Array<string> = []
+  const colors: Array<string> = []
 
-  const walk = (component: Component, indent = '') => {
-    const childIndent = `${indent}  `;
+  const walk = (inner: Component, indent = '') => {
+    const childIndent = `${indent}  `
 
-    for (const child of component._dev!.children) {
-      lines.push(`${childIndent}${child._dev!.name}`);
-      colors.push(`color:${child._dev!.color}`);
-      walk(child, childIndent);
+    for (const child of inner.DEV!.children) {
+      lines.push(`${childIndent}${child.DEV!.name}`)
+      colors.push(`color:${child.DEV!.color}`)
+      walk(child, childIndent)
     }
-  };
+  }
 
-  walk(component);
+  walk(component)
 
-  console.log(lines.map((line) => `%c${line}`).join('\n'), ...colors);
-};
+  console.log(lines.map(line => `%c${line}`).join('\n'), ...colors)
+}
 
 export const randomHexColor = () =>
-  `#${Math.floor(Math.random() * 0xffffff)
+  // oxlint-disable-next-line unicorn/number-literal-case
+  `#${Math.floor(Math.random() * 0xff_ff_ff)
     .toString(16)
-    .padStart(6, '0')}`;
+    .padStart(6, '0')}`
 
-export type ComponentType = Enum<typeof ComponentType>;
+export type ComponentType = Enum<typeof ComponentType>
 export const ComponentType = {
-  STATIC: 'Static',
   DYNAMIC: 'Dynamic',
+  STATIC: 'Static',
   SWAP: 'Swap',
-} as const;
+} as const
 
-export type LogEventType = Enum<typeof LogEventType>;
+export type LogEventType = Enum<typeof LogEventType>
 export const LogEventType = {
   CONNECTED: 0,
-  DISCONNECTED: 1,
   DESTROYED: 2,
-} as const;
+  DISCONNECTED: 1,
+} as const
 
 const getLogSymbol = (type: LogEventType) => {
   switch (type) {
-    case LogEventType.CONNECTED:
+    case LogEventType.CONNECTED: {
       return {
-        symbol: '➕',
         color: '#0F0',
-      };
-    case LogEventType.DISCONNECTED:
+        symbol: '➕',
+      }
+    }
+    case LogEventType.DESTROYED: {
       return {
-        symbol: '➖',
-        color: '#0FF',
-      };
-    case LogEventType.DESTROYED:
-      return {
-        symbol: '❌',
         color: '#F00',
-      };
+        symbol: '❌',
+      }
+    }
+    case LogEventType.DISCONNECTED:
+    default: {
+      return {
+        color: '#0FF',
+        symbol: '➖',
+      }
+    }
   }
-};
+}
 
 export const logEvent = (type: LogEventType, DEV: ComponentDevState | null) => {
   if (!IS_DEV || !DEV) {
-    return;
+    return
   }
 
-  const { symbol, color } = getLogSymbol(type);
-  console.log(`%c${symbol} %c${DEV.name} (${DEV.type})`, `color:${color}`, `color:${DEV.color}`);
-};
+  const { color, symbol } = getLogSymbol(type)
+  console.log(
+    `%c${symbol} %c${DEV.name} (${DEV.type})`,
+    `color:${color}`,
+    `color:${DEV.color}`,
+  )
+}

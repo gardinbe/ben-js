@@ -1,63 +1,55 @@
-import { derived, isReactive, type Reactive } from '@ben-js/reactivity';
-import { isStatic, staticValue, type NormalizedValues } from './static';
+import { type Pojo } from '@ben-js/common'
+import { derived, isReactive, type Reactive } from '@ben-js/reactivity'
 
-// todo: shared package
+import { isStatic, type NormalizedValues, staticValue } from './static'
 
-export type Enum<T> = T[keyof T];
-
-export type Pojo = {
-  [key: PropertyKey]: unknown;
-};
-
-export type UUID = `${string}-${string}-${string}-${string}-${string}`;
-
-export const createUUID = (): UUID =>
-  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  }) as UUID;
+export type Prop<T> = Reactive<T> | T
 
 export type Props<T = Pojo> = {
-  [K in keyof T]: T[K] extends undefined ? undefined : Prop<Exclude<T[K], undefined>>;
-};
-
-export type Prop<T> = Reactive<T> | T;
+  [K in keyof T]: T[K] extends undefined
+    ? undefined
+    : Prop<Exclude<T[K], undefined>>
+}
 
 export const attrs = (obj: Pojo): string | Reactive<string> => {
   const create = () =>
     Object.entries(obj)
-      .map(([key, value]) => [key, isReactive(value) || isStatic(value) ? value.value : value])
+      .map(([key, value]) => [
+        key,
+        isReactive(value) || isStatic(value) ? value.value : value,
+      ])
       .filter(([, value]) => value !== undefined)
+      // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
       .map(([key, value]) => (key ? `${key}="${value}"` : key))
-      .join(' ');
+      .join(' ')
 
   if (Object.values(obj).some(isReactive)) {
-    return derived(create);
+    return derived(create)
   }
 
-  return create();
-};
+  return create()
+}
 
-export const cn = (...classes: unknown[]): string | Reactive<string> => {
+export const cn = (...classes: Array<unknown>): string | Reactive<string> => {
   const create = () =>
     classes
-      .map((cls) => (isReactive(cls) || isStatic(cls) ? cls.value : cls))
-      .filter((cls) => !!cls)
+      .map(cls => (isReactive(cls) || isStatic(cls) ? cls.value : cls))
+      .filter(cls => !!cls)
       .filter((cls, i, arr) => arr.indexOf(cls) === i)
-      .join(' ');
+      .join(' ')
 
   if (classes.some(isReactive)) {
-    return derived(create);
+    return derived(create)
   }
 
-  return create();
-};
+  return create()
+}
 
 export const normalize = <T>(props: Props<T>): NormalizedValues<T> =>
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   Object.fromEntries(
     Object.entries(props).map(([key, value]) => [
       key,
       isReactive(value) ? value : staticValue(value),
     ]),
-  ) as NormalizedValues<T>;
+  ) as NormalizedValues<T>

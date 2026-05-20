@@ -1,70 +1,66 @@
-import { ErrorType, createError } from './error';
+import { createError, ErrorType } from './error'
 
 export interface Component {
-  readonly [ComponentSymbol]: true;
-  readonly mount: (target: ComponentMountTarget) => void;
-  readonly unmount: () => void;
-  readonly destroy: () => void;
-  readonly hook: (payload: ComponentUsePayload) => this;
-  readonly setConnected: () => void; // todo: consider renaming/restructuring this
-  readonly setDisconnected: () => void;
-  _dev?: ComponentDevState;
+  readonly [ComponentSymbol]: true
+  DEV?: ComponentDevState
+  readonly destroy: () => void
+  readonly hook: (payload: ComponentUsePayload) => this
+  readonly mount: (target: ComponentMountTarget) => void
+  readonly setConnected: () => void // todo: consider renaming/restructuring this
+  readonly setDisconnected: () => void
+  readonly unmount: () => void
 }
 
-export const ComponentSymbol = Symbol('ben-js.component');
+export const ComponentSymbol = Symbol('ben-js.component')
 
 export const isComponent = (value: unknown): value is Component =>
-  typeof value === 'object' && !!value && ComponentSymbol in value;
-
-export type ComponentMountTarget = Node | string;
-
-export type ComponentUsePayload = {
-  connected: ComponentHookFunction;
-  disconnected: ComponentHookFunction;
-};
-
-export type ComponentHook = (fn: ComponentHookFunction) => void;
-export type ComponentHookFunction = () => void;
+  typeof value === 'object' && !!value && ComponentSymbol in value
 
 export type ComponentDevState = {
-  readonly name: string;
-  readonly children: Component[];
-  readonly color: string;
-  readonly type: string;
-};
+  readonly children: Array<Component>
+  readonly color: string
+  readonly name: string
+  readonly type: string
+}
 
-export const ANONYMOUS_COMPONENT_NAME = '[anonymous]';
+export type ComponentHook = (fn: ComponentHookFunction) => void
 
-export const COMPONENT_MARKER = ' ben-js.component ';
-export const COMPONENT_CHILD_MARKER = ' ben-js.child-component ';
-export const COMPONENT_MEMBERS_MARKER = ' ben-js.members-component ';
-export const COMPONENT_MEMBER_MARKER = ' ben-js.member-component ';
+export type ComponentHookFunction = () => void
+export type ComponentMountTarget = string | Node
 
-export const inDocument = (node: Node) => node.isConnected && node.ownerDocument === document;
+export type ComponentUsePayload = {
+  connected: ComponentHookFunction
+  disconnected: ComponentHookFunction
+}
 
-export type ComponentMountNodes = {
-  target: Node;
-  parent: ParentNode;
-};
+export const ANONYMOUS_COMPONENT_NAME = '[anonymous]'
 
-export const getMountNodes = (
+export const COMPONENT_MARKER = ' ben-js.component '
+export const COMPONENT_CHILD_MARKER = ' ben-js.child-component '
+export const COMPONENT_MEMBERS_MARKER = ' ben-js.members-component '
+export const COMPONENT_MEMBER_MARKER = ' ben-js.member-component '
+
+export const isInDocument = (node: Node) =>
+  node.isConnected && node.ownerDocument === document
+
+const isChildNode = (node: unknown): node is ChildNode => {
+  if (!node || typeof node !== 'object' || !('nodeType' in node)) {
+    return false
+  }
+
+  const t = node.nodeType
+  return t === 1 || t === 3 || t === 4 || t === 7 || t === 8 || t === 10
+}
+
+export const getMountNode = (
   node: ComponentMountTarget,
   DEV: ComponentDevState | null,
-): ComponentMountNodes => {
-  const target = typeof node === 'string' ? document.querySelector(node) : node;
+): ChildNode => {
+  const target = typeof node === 'string' ? document.querySelector(node) : node
 
-  if (!target) {
-    throw createError(ErrorType.MISSING_MOUNT_NODE, DEV);
+  if (!isChildNode(target)) {
+    throw createError(ErrorType.MISSING_MOUNT_NODE, DEV)
   }
 
-  const parent = target.parentNode;
-
-  if (!parent) {
-    throw createError(ErrorType.PARENT_IS_ORPHAN, DEV);
-  }
-
-  return {
-    target,
-    parent,
-  };
-};
+  return target
+}

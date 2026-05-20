@@ -1,174 +1,178 @@
-import { derived, type Reactive, watch } from '@ben-js/reactivity';
+import { derived, type Reactive, watch } from '@ben-js/reactivity'
 
 import {
-  ComponentDevState,
   ANONYMOUS_COMPONENT_NAME,
   type Component,
-  ComponentSymbol,
-  type ComponentHookFunction,
-  inDocument,
   COMPONENT_MEMBER_MARKER,
   COMPONENT_MEMBERS_MARKER,
-  type ComponentUsePayload,
+  type ComponentDevState,
+  type ComponentHookFunction,
   type ComponentMountTarget,
-  getMountNodes,
-} from '../component';
-import { getCallerFunctionName } from '../dev';
-import { ComponentType, IS_DEV, logEvent, LogEventType, randomHexColor } from '../dev';
+  ComponentSymbol,
+  type ComponentUsePayload,
+  getMountNode,
+  isInDocument,
+} from '../component'
+import {
+  ComponentType,
+  getCallerFunctionName,
+  IS_DEV,
+  logEvent,
+  LogEventType,
+  randomHexColor,
+} from '../dev'
 
-export const Dynamic = <T>({ items, transform, diff }: DynamicPayload<T>): Component => {
-  const members = typeof items === 'function' ? derived(items) : items;
-  const memberComponents = () => members.value.map(transform);
+export const Dynamic = <T>({
+  diff,
+  items,
+  transform,
+}: DynamicPayload<T>): Component => {
+  const members = typeof items === 'function' ? derived(items) : items
+  const memberComponents = () => members.value.map(transform)
 
-  const marker = document.createComment(COMPONENT_MEMBERS_MARKER);
-  let isMounted = false;
+  const marker = document.createComment(COMPONENT_MEMBERS_MARKER)
+  const isMounted = false
 
   const hooks = {
     connected: new Set<ComponentHookFunction>(),
     disconnected: new Set<ComponentHookFunction>(),
-  };
+  }
 
   const DEV: ComponentDevState | null = IS_DEV
     ? {
-        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
-        get children() {
-          return memberComponents();
-        },
         color: randomHexColor(),
+        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
         type: ComponentType.DYNAMIC,
+        get children() {
+          return memberComponents()
+        },
       }
-    : null;
+    : null
 
-  const add = (component: Component, parent: ParentNode) => {
-    const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER);
-    parent.insertBefore(componentMarker, marker);
-    component.mount(componentMarker);
-  };
+  const add = (component: Component) => {
+    const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
+    marker.before(componentMarker)
+    component.mount(componentMarker)
+  }
 
   const mount = (node: ComponentMountTarget) => {
-    const { target, parent } = getMountNodes(node, DEV);
-    parent.replaceChild(marker, target);
+    const target = getMountNode(node, DEV)
+    target.replaceWith(marker)
 
-    memberComponents().forEach((component) => {
-      add(component, parent);
-    });
+    memberComponents().forEach(component => {
+      add(component)
+    })
 
-    if (!inDocument(marker)) {
-      setDisconnected();
-      return;
+    if (!isInDocument(marker)) {
+      setDisconnected()
+      return
     }
 
-    setConnected();
-  };
+    setConnected()
+  }
 
   const setConnected = () => {
     if (isMounted) {
-      return;
+      return
     }
 
-    memberComponents().forEach((component) => {
-      component.setConnected();
-    });
+    memberComponents().forEach(component => {
+      component.setConnected()
+    })
 
-    logEvent(LogEventType.CONNECTED, DEV);
-    hooks.connected.forEach((fn) => {
-      fn();
-    });
-  };
+    logEvent(LogEventType.CONNECTED, DEV)
+    hooks.connected.forEach(fn => {
+      fn()
+    })
+  }
 
   const setDisconnected = () => {
     if (!isMounted) {
-      return;
+      return
     }
 
-    memberComponents().forEach((component) => {
-      component.setDisconnected();
-    });
+    memberComponents().forEach(component => {
+      component.setDisconnected()
+    })
 
-    logEvent(LogEventType.DISCONNECTED, DEV);
-    hooks.disconnected.forEach((fn) => {
-      fn();
-    });
-  };
+    logEvent(LogEventType.DISCONNECTED, DEV)
+    hooks.disconnected.forEach(fn => {
+      fn()
+    })
+  }
 
   const unmount = () => {
-    memberComponents().forEach((component) => {
-      component.unmount();
-    });
-    marker.remove();
-  };
+    memberComponents().forEach(component => {
+      component.unmount()
+    })
+    marker.remove()
+  }
 
   const destroy = () => {
-    memberComponents().forEach((component) => {
-      component.destroy();
-    });
-    marker.remove();
-    logEvent(LogEventType.DESTROYED, DEV);
-  };
+    memberComponents().forEach(component => {
+      component.destroy()
+    })
+    marker.remove()
+    logEvent(LogEventType.DESTROYED, DEV)
+  }
 
   const hook = (payload: ComponentUsePayload) => {
     if (payload.connected) {
-      hooks.connected.add(payload.connected);
+      hooks.connected.add(payload.connected)
     }
 
     if (payload.disconnected) {
-      hooks.disconnected.add(payload.disconnected);
+      hooks.disconnected.add(payload.disconnected)
     }
 
-    return c;
-  };
+    return c
+  }
 
   watch(members, (next, prev) => {
-    const parent = marker.parentNode;
-
-    if (!parent) {
-      return;
-    }
-
     prev
       .filter(diff.removeOld(next))
       .map(transform)
-      .forEach((component) => {
-        component.destroy();
-      });
+      .forEach(component => {
+        component.destroy()
+      })
 
     next
       .filter(diff.addNew(prev))
       .map(transform)
-      .forEach((component) => {
-        add(component, parent);
-      });
-  });
+      .forEach(component => {
+        add(component)
+      })
+  })
 
   const c: Component = {
     [ComponentSymbol]: true,
-    mount,
-    unmount,
     destroy,
     hook,
+    mount,
     setConnected,
     setDisconnected,
-  };
-
-  if (DEV) {
-    c._dev = DEV;
+    unmount,
   }
 
-  return c;
-};
+  if (DEV) {
+    c.DEV = DEV
+  }
+
+  return c
+}
 
 export type DynamicPayload<T> = {
-  items: (() => T[]) | Reactive<T[]>;
-  transform: (item: T) => Component;
-  diff: DynamicPayloadDiff<T>;
-};
+  diff: DynamicPayloadDiff<T>
+  items: (() => Array<T>) | Reactive<Array<T>>
+  transform: (item: T) => Component
+}
 
 export type DynamicPayloadDiff<T> = {
-  removeOld: (next: T[]) => (prevItem: T) => boolean;
-  addNew: (prev: T[]) => (nextItem: T) => boolean;
-};
+  addNew: (prev: Array<T>) => (nextItem: T) => boolean
+  removeOld: (next: Array<T>) => (prevItem: T) => boolean
+}
 
 export type KeyedComponent = {
-  component: Component;
-  key: PropertyKey;
-};
+  component: Component
+  key: PropertyKey
+}

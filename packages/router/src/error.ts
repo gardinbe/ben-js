@@ -1,18 +1,16 @@
-import { type Enum } from './utils';
+import { type Enum } from '@ben-js/common'
 
-export type ErrorType = Enum<typeof ErrorType>;
 export const ErrorType = {
   MISSING_ROUTE: 0,
-} as const;
+} as const
 
-const MSG_PREFIX = 'Ben-js/router';
+export type ErrorType = Enum<typeof ErrorType>
+
+const PREFIX = 'Ben-js/router'
+
+const messages: Record<ErrorType, string> = {
+  [ErrorType.MISSING_ROUTE]: 'No route resolved',
+}
 
 export const createError = (type: ErrorType) =>
-  new Error(MSG_PREFIX + ' → ' + createErrorMsg(type));
-
-const createErrorMsg = (type: ErrorType) => {
-  switch (type) {
-    case ErrorType.MISSING_ROUTE:
-      return 'No route resolved';
-  }
-};
+  new Error(`${PREFIX} → ${messages[type]}`)

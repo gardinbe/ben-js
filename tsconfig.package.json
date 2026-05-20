@@ -1,7 +1,7 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "@gardinbe/config/tsconfig/client",
   "compilerOptions": {
-    "target": "esnext",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+    "emitDecoratorMetadata": false,
+    "experimentalDecorators": false
   }
 }

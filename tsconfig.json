@@ -1,9 +1,5 @@
 {
-  "extends": "./tsconfig.base.json",
-  "compilerOptions": {
-    "target": "esnext",
-    "lib": ["ES2024", "DOM", "DOM.Iterable"],
-    "types": []
-  },
-  "include": ["./"]
+  "extends": "@gardinbe/config/tsconfig/node",
+  "include": ["./"],
+  "exclude": ["./packages"]
 }

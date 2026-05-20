@@ -1,46 +1,35 @@
-import type { ComponentDevState } from './component';
-import type { Enum } from './utils';
+import { type Enum } from '@ben-js/common'
 
-export type ErrorType = Enum<typeof ErrorType>;
+import { type ComponentDevState } from './component'
+
 export const ErrorType = {
+  COMPONENT_MARKER_MISMATCH: 2,
+  DEV_MODE_NOT_ENABLED: 3,
   MISSING_MOUNT_NODE: 0,
-  PARENT_IS_ORPHAN: 1,
-  MISSING_REF_TARGET: 2,
-  COMPONENT_MARKER_MISMATCH: 3,
-  DEV_MODE_NOT_ENABLED: 4,
-} as const;
+  MISSING_REF_TARGET: 1,
+} as const
 
-const MSG_PREFIX = 'Ben-js';
+export type ErrorType = Enum<typeof ErrorType>
 
-export const createError = (type: ErrorType, DEV?: ComponentDevState | null) =>
-  new Error(MSG_PREFIX + ' → ' + createErrorMsg(type, DEV?.name));
+const PREFIX = 'Ben-js'
+
+const messages: Record<ErrorType, string> = {
+  [ErrorType.COMPONENT_MARKER_MISMATCH]: 'Component marker count mismatch',
+  [ErrorType.DEV_MODE_NOT_ENABLED]:
+    'You must enable dev mode with `enableDevMode()` to perform this action',
+  [ErrorType.MISSING_MOUNT_NODE]: 'Missing mount node',
+  [ErrorType.MISSING_REF_TARGET]: 'Ref target element missing',
+}
+
+export const createError = (type: ErrorType, dev?: ComponentDevState | null) =>
+  new Error(`${PREFIX} → ${createErrorMsg(type, dev?.name)}`)
 
 const createErrorMsg = (type: ErrorType, name?: string) => {
-  // todo: tidy
+  const message = messages[type]
 
-  if (name) {
-    switch (type) {
-      case ErrorType.MISSING_MOUNT_NODE:
-        return `Missing mount node for ${name}`;
-      case ErrorType.PARENT_IS_ORPHAN:
-        return `Mount node for ${name} is an orphan`;
-      case ErrorType.MISSING_REF_TARGET:
-        return `Ref target element missing on ${name}`;
-      case ErrorType.COMPONENT_MARKER_MISMATCH:
-        return `Component marker count mismatch on ${name}`;
-    }
+  if (!name) {
+    return message
   }
 
-  switch (type) {
-    case ErrorType.MISSING_MOUNT_NODE:
-      return 'Missing mount node';
-    case ErrorType.PARENT_IS_ORPHAN:
-      return 'Mount node is an orphan';
-    case ErrorType.MISSING_REF_TARGET:
-      return 'Ref target element missing';
-    case ErrorType.COMPONENT_MARKER_MISMATCH:
-      return 'Component marker count mismatch';
-    case ErrorType.DEV_MODE_NOT_ENABLED:
-      return 'You must enable dev mode with `enableDevMode()` to perform this action';
-  }
-};
+  return `${message} on ${name}`
+}

@@ -1,17 +1,17 @@
-import { ctx, type Reactive, reactive } from './reactive';
+import { ctx, type Reactive, reactive } from './reactive'
 
 export const derived = <T>(effect: DerivedEffect<T>): Derived<T> => {
-  const rx = reactive(effect());
+  const rx = reactive(effect())
 
   ctx(() => {
-    rx.value = effect();
-  });
+    rx.value = effect()
+  })
 
-  return rx;
-};
+  return rx
+}
 
-export type Derived<T> = Reactive<T> & {
-  readonly value: T;
-};
+export type Derived<T> = {
+  readonly value: T
+} & Reactive<T>
 
-export type DerivedEffect<T> = () => T;
+export type DerivedEffect<T> = () => T

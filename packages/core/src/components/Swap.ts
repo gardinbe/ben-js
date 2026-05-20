@@ -1,142 +1,144 @@
-import { derived, watch, type Reactive } from '@ben-js/reactivity';
+import { derived, type Reactive, watch } from '@ben-js/reactivity'
 
 import {
-  ComponentDevState,
   ANONYMOUS_COMPONENT_NAME,
-  ComponentSymbol,
-  ComponentHookFunction,
-  inDocument,
+  type Component,
   COMPONENT_MEMBER_MARKER,
   COMPONENT_MEMBERS_MARKER,
-  type Component,
-  type ComponentUsePayload,
+  type ComponentDevState,
+  type ComponentHookFunction,
   type ComponentMountTarget,
-  getMountNodes,
-} from '../component';
-import { getCallerFunctionName } from '../dev';
-import { ComponentType, IS_DEV, logEvent, LogEventType, randomHexColor } from '../dev';
+  ComponentSymbol,
+  type ComponentUsePayload,
+  getMountNode,
+  isInDocument,
+} from '../component'
+import {
+  ComponentType,
+  getCallerFunctionName,
+  IS_DEV,
+  logEvent,
+  LogEventType,
+  randomHexColor,
+} from '../dev'
 
-export const Swap = (item: (() => Component | null) | Reactive<Component | null>): Component => {
-  const memberComponent = typeof item === 'function' ? derived(item) : item;
+export const Swap = (
+  item: (() => Component | null) | Reactive<Component | null>,
+): Component => {
+  const memberComponent = typeof item === 'function' ? derived(item) : item
 
-  const marker = document.createComment(COMPONENT_MEMBERS_MARKER);
-  let isMounted = false;
+  const marker = document.createComment(COMPONENT_MEMBERS_MARKER)
+  const isMounted = false
 
   const hooks = {
     connected: new Set<ComponentHookFunction>(),
     disconnected: new Set<ComponentHookFunction>(),
-  };
+  }
 
   const DEV: ComponentDevState | null = IS_DEV
     ? {
-        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
-        get children() {
-          return memberComponent.value ? [memberComponent.value] : [];
-        },
         color: randomHexColor(),
+        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
         type: ComponentType.SWAP,
+        get children() {
+          return memberComponent.value ? [memberComponent.value] : []
+        },
       }
-    : null;
+    : null
 
-  const add = (component: Component, parent: ParentNode) => {
-    const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER);
-    parent.insertBefore(componentMarker, marker);
-    component.mount(componentMarker);
-  };
+  const add = (component: Component) => {
+    const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
+    marker.before(componentMarker)
+    component.mount(componentMarker)
+  }
 
   const mount = (node: ComponentMountTarget) => {
-    const { target, parent } = getMountNodes(node, DEV);
-    parent.replaceChild(marker, target);
+    const target = getMountNode(node, DEV)
+    target.replaceWith(marker)
 
     if (memberComponent.value) {
-      add(memberComponent.value, parent);
+      add(memberComponent.value)
     }
 
-    if (!inDocument(marker)) {
-      setDisconnected();
-      return;
+    if (!isInDocument(marker)) {
+      setDisconnected()
+      return
     }
 
-    setConnected();
-  };
+    setConnected()
+  }
 
   const setConnected = () => {
     if (isMounted) {
-      return;
+      return
     }
 
-    memberComponent.value?.setConnected();
+    memberComponent.value?.setConnected()
 
-    logEvent(LogEventType.CONNECTED, DEV);
-    hooks.connected.forEach((fn) => {
-      fn();
-    });
-  };
+    logEvent(LogEventType.CONNECTED, DEV)
+    hooks.connected.forEach(fn => {
+      fn()
+    })
+  }
 
   const setDisconnected = () => {
     if (!isMounted) {
-      return;
+      return
     }
 
-    memberComponent.value?.setDisconnected();
+    memberComponent.value?.setDisconnected()
 
-    logEvent(LogEventType.DISCONNECTED, DEV);
-    hooks.disconnected.forEach((fn) => {
-      fn();
-    });
-  };
+    logEvent(LogEventType.DISCONNECTED, DEV)
+    hooks.disconnected.forEach(fn => {
+      fn()
+    })
+  }
 
   const unmount = () => {
-    memberComponent.value?.unmount();
-    marker.remove();
-  };
+    memberComponent.value?.unmount()
+    marker.remove()
+  }
 
   const destroy = () => {
-    memberComponent.value?.destroy();
-    marker.remove();
-    logEvent(LogEventType.DESTROYED, DEV);
-  };
+    memberComponent.value?.destroy()
+    marker.remove()
+    logEvent(LogEventType.DESTROYED, DEV)
+  }
 
   const hook = (payload: ComponentUsePayload) => {
     if (payload.connected) {
-      hooks.connected.add(payload.connected);
+      hooks.connected.add(payload.connected)
     }
 
     if (payload.disconnected) {
-      hooks.disconnected.add(payload.disconnected);
+      hooks.disconnected.add(payload.disconnected)
     }
 
-    return c;
-  };
+    return c
+  }
 
   watch(memberComponent, (next, prev) => {
     if (!next || next === prev) {
-      return;
+      return
     }
 
-    const parent = marker.parentNode;
-
-    if (!parent) {
-      return;
-    }
-
-    prev?.destroy();
-    add(next, parent);
-  });
+    prev?.destroy()
+    add(next)
+  })
 
   const c: Component = {
     [ComponentSymbol]: true,
-    mount,
-    unmount,
     destroy,
     hook,
+    mount,
     setConnected,
     setDisconnected,
-  };
-
-  if (DEV) {
-    c._dev = DEV;
+    unmount,
   }
 
-  return c;
-};
+  if (DEV) {
+    c.DEV = DEV
+  }
+
+  return c
+}

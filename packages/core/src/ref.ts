@@ -1,11 +1,10 @@
-import { reactive, watch } from '@ben-js/reactivity';
-
-import { createUUID, type UUID } from './utils';
+import { createUUID, type UUID } from '@ben-js/common'
+import { reactive, watch } from '@ben-js/reactivity'
 
 export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
-  const uuid = createUUID();
-  const element = reactive<E | null>(null);
-  const listeners: Listener[] = [];
+  const uuid = createUUID()
+  const element = reactive<E | null>(null)
+  const listeners: Array<Listener> = []
 
   const on: EventListenerBinder<E> = (type, callback, options) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,15 +12,16 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
       callback,
       options,
       type,
-    };
-
-    if (isSet(listener)) {
-      return;
     }
 
-    element.value?.addEventListener(type, callback as EventListener, options);
-    listeners.push(listener);
-  };
+    if (isSet(listener)) {
+      return
+    }
+
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    element.value?.addEventListener(type, callback as EventListener, options)
+    listeners.push(listener)
+  }
 
   const off: EventListenerBinder<E> = (type, callback, options) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,74 +29,84 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
       callback,
       options,
       type,
-    };
-
-    if (!isSet(listener)) {
-      return;
     }
 
-    element.value?.removeEventListener(type, callback as EventListener, options);
-    listeners.splice(listeners.indexOf(listener), 1);
-  };
+    if (!isSet(listener)) {
+      return
+    }
 
-  const isSet = (listener: Listener): boolean => listeners.some((p) => isSameListener(p, listener));
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+    element.value?.removeEventListener(type, callback as EventListener, options)
+    listeners.splice(listeners.indexOf(listener), 1)
+  }
+
+  const isSet = (listener: Listener): boolean =>
+    listeners.some(p => isSameListener(p, listener))
 
   watch(
     element,
     (next, prev) => {
       if (prev) {
-        listeners.forEach((listener) => {
-          prev.removeEventListener(listener.type, listener.callback, listener.options);
-        });
+        listeners.forEach(listener => {
+          prev.removeEventListener(
+            listener.type,
+            listener.callback,
+            listener.options,
+          )
+        })
       }
 
       if (next) {
-        listeners.forEach((listener) => {
-          next.addEventListener(listener.type, listener.callback, listener.options);
-        });
+        listeners.forEach(listener => {
+          next.addEventListener(
+            listener.type,
+            listener.callback,
+            listener.options,
+          )
+        })
       }
     },
     {
       immediate: true,
     },
-  );
+  )
 
   return {
-    get el() {
-      return element.value;
-    },
     off,
     on,
     [RefSymbol]: true,
     uuid,
-    set: (el) => {
-      element.value = el;
+    get el() {
+      return element.value
     },
-  };
-};
-
-export interface Ref<E extends HTMLElement = HTMLElement> {
-  readonly [RefSymbol]: true;
-  readonly el: E | null;
-  readonly uuid: UUID;
-  readonly on: EventListenerBinder<E>;
-  readonly off: EventListenerBinder<E>;
-  readonly set: (element: E | null) => void;
+    set: el => {
+      element.value = el
+    },
+  }
 }
 
-export const RefSymbol = Symbol('ben-js.ref');
+export interface Ref<E extends HTMLElement = HTMLElement> {
+  readonly el: E | null
+  readonly off: EventListenerBinder<E>
+  readonly on: EventListenerBinder<E>
+  readonly [RefSymbol]: true
+  readonly uuid: UUID
+  readonly set: (element: E | null) => void
+}
+
+export const RefSymbol = Symbol('ben-js.ref')
 
 export const isRef = (value: unknown): value is Ref =>
-  typeof value === 'object' && !!value && RefSymbol in value;
+  typeof value === 'object' && !!value && RefSymbol in value
 
 export type EventListenerBinder<E extends HTMLElement> = <
   TMap extends EventMap<E> = EventMap<E>,
-  TType extends keyof TMap & string = keyof TMap & string,
+  TType extends string & keyof TMap = string & keyof TMap,
 >(
   type: TType,
   callback: (this: E, ev: TMap[TType]) => unknown,
-  options?: AddEventListenerOptions | boolean,
-) => void;
+  options?: boolean | AddEventListenerOptions,
+) => void
 
 export type EventMap<E extends Element> = E extends HTMLVideoElement
   ? HTMLVideoElementEventMap
@@ -113,22 +123,25 @@ export type EventMap<E extends Element> = E extends HTMLVideoElement
             ? HTMLElementEventMap
             : E extends Element
               ? ElementEventMap
-              : never;
+              : never
 
 export type Listener<
   E extends HTMLElement = HTMLElement,
   TEventMap extends EventMap<E> = EventMap<E>,
-  TEvent extends Extract<keyof TEventMap, string> = Extract<keyof TEventMap, string>,
+  TEvent extends Extract<keyof TEventMap, string> = Extract<
+    keyof TEventMap,
+    string
+  >,
 > = {
-  callback: (this: E, ev: TEventMap[TEvent]) => unknown;
-  options?: AddEventListenerOptions | boolean | undefined;
-  type: TEvent;
-};
+  type: TEvent
+  options?: boolean | AddEventListenerOptions | undefined
+  callback: (this: E, ev: TEventMap[TEvent]) => unknown
+}
 
 const isSameListener = (a: Listener, b: Listener): boolean =>
   a.type === b.type &&
   a.callback === b.callback &&
-  isListenerCapture(a.options) === isListenerCapture(b.options);
+  isListenerCapture(a.options) === isListenerCapture(b.options)
 
 const isListenerCapture = (options: Listener['options']): boolean =>
-  typeof options === 'object' ? !!options.capture : !!options;
+  typeof options === 'object' ? !!options.capture : !!options

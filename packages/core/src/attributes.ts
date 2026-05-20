@@ -1,23 +1,23 @@
-export type HTMLAnchorAttributes = HTMLAttributes & {
-  href: string;
-  target?: '__unfencedTop' | '_blank' | '_parent' | '_self' | '_top';
-  rel?: string;
-  download?: string;
+export type HTMLAnchorAttributes = {
+  href: string
+  download?: string
+  ping?: string
   referrerpolicy?:
-    | 'no-referrer'
     | 'no-referrer-when-downgrade'
-    | 'origin'
+    | 'no-referrer'
     | 'origin-when-cross-origin'
+    | 'origin'
     | 'same-origin'
-    | 'strict-origin'
     | 'strict-origin-when-cross-origin'
-    | 'unsafe-url';
-  ping?: string;
-};
+    | 'strict-origin'
+    | 'unsafe-url'
+  rel?: string
+  target?: '__unfencedTop' | '_blank' | '_parent' | '_self' | '_top'
+} & HTMLAttributes
 
 export type HTMLAttributes = {
-  [key: string]: string;
-  class?: string;
-  id?: string;
-  style?: string;
-};
+  [key: string]: string
+  class?: string
+  id?: string
+  style?: string
+}

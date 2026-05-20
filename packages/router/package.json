@@ -2,28 +2,33 @@
   "name": "@ben-js/router",
   "version": "0.0.0",
   "description": "@ben-js/router",
+  "license": "MIT",
   "author": "Ben Gardiner <gardinbe@gmail.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gardinbe/ben-js.git"
   },
-  "type": "module",
-  "main": "./dist/index.cjs.js",
-  "module": "./dist/index.es.js",
-  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*.ts"
-  },
-  "dependencies": {
-    "@ben-js/core": "workspace:*",
-    "@ben-js/reactivity": "workspace:*"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@ben-js/common": "workspace:*",
+    "@ben-js/core": "workspace:*",
+    "@ben-js/reactivity": "workspace:*"
   }
 }

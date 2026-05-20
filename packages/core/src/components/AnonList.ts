@@ -1,13 +1,16 @@
-import { type Reactive } from '@ben-js/reactivity';
-import { type Component } from '../component';
-import { Dynamic } from './Dynamic';
+import { type Reactive } from '@ben-js/reactivity'
 
-export const AnonList = (items: (() => Component[]) | Reactive<Component[]>): Component =>
+import { type Component } from '../component'
+import { Dynamic } from './Dynamic'
+
+export const AnonList = (
+  items: (() => Array<Component>) | Reactive<Array<Component>>,
+): Component =>
   Dynamic({
-    items,
-    transform: (item) => item,
     diff: {
-      removeOld: () => () => true,
       addNew: () => () => true,
+      removeOld: () => () => true,
     },
-  });
+    items,
+    transform: item => item,
+  })

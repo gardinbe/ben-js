@@ -1,2 +1,2 @@
-export * from '@ben-js/core';
-export * from '@ben-js/reactivity';
+export * from '@ben-js/core'
+export * from '@ben-js/reactivity'

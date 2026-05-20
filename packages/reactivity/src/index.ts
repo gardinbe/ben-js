@@ -1,5 +1,5 @@
-export { derived, type DerivedEffect } from './derived';
-export { flatten, type Flattened } from './flatten';
+export { derived, type DerivedEffect } from './derived'
+export { flatten, type Flattened } from './flatten'
 export {
   ctx,
   type Effect,
@@ -9,8 +9,8 @@ export {
   ReactiveSymbol,
   track,
   trigger,
-} from './reactive';
-export { subscribe, subscriptions, unsubscribe } from './subscriptions';
+} from './reactive'
+export { subscribe, subscriptions, unsubscribe } from './subscriptions'
 export {
   watch,
   type Watch,
@@ -18,4 +18,4 @@ export {
   type WatchFunction,
   type WatchImmediateOptions,
   type WatchOptions,
-} from './watch';
+} from './watch'
