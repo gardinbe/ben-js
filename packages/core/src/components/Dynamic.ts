@@ -1,25 +1,23 @@
 import { derived, type Reactive, watch } from '@ben-js/reactivity'
 
 import {
-  ANONYMOUS_COMPONENT_NAME,
   type Component,
   COMPONENT_MEMBER_MARKER,
   COMPONENT_MEMBERS_MARKER,
-  type ComponentDevState,
   type ComponentHookFunction,
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
+  connectComponents,
+  disconnectComponents,
   getMountNode,
   isInDocument,
 } from '../component'
 import {
   ComponentType,
-  getCallerFunctionName,
-  IS_DEV,
+  createComponentDev,
   logEvent,
   LogEventType,
-  randomHexColor,
 } from '../dev'
 
 export const Dynamic = <T>({
@@ -38,16 +36,7 @@ export const Dynamic = <T>({
     disconnected: new Set<ComponentHookFunction>(),
   }
 
-  const DEV: ComponentDevState | null = IS_DEV
-    ? {
-        color: randomHexColor(),
-        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
-        type: ComponentType.DYNAMIC,
-        get children() {
-          return memberComponents()
-        },
-      }
-    : null
+  const dev = createComponentDev(ComponentType.DYNAMIC, memberComponents)
 
   const add = (component: Component) => {
     const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
@@ -56,7 +45,7 @@ export const Dynamic = <T>({
   }
 
   const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node, DEV)
+    const target = getMountNode(node, dev)
     target.replaceWith(marker)
 
     memberComponents().forEach(component => {
@@ -76,14 +65,7 @@ export const Dynamic = <T>({
       return
     }
 
-    memberComponents().forEach(component => {
-      component.setConnected()
-    })
-
-    logEvent(LogEventType.CONNECTED, DEV)
-    hooks.connected.forEach(fn => {
-      fn()
-    })
+    connectComponents(memberComponents(), dev, hooks.connected)
   }
 
   const setDisconnected = () => {
@@ -91,14 +73,7 @@ export const Dynamic = <T>({
       return
     }
 
-    memberComponents().forEach(component => {
-      component.setDisconnected()
-    })
-
-    logEvent(LogEventType.DISCONNECTED, DEV)
-    hooks.disconnected.forEach(fn => {
-      fn()
-    })
+    disconnectComponents(memberComponents(), dev, hooks.disconnected)
   }
 
   const unmount = () => {
@@ -113,7 +88,7 @@ export const Dynamic = <T>({
       component.destroy()
     })
     marker.remove()
-    logEvent(LogEventType.DESTROYED, DEV)
+    logEvent(LogEventType.DESTROYED, dev)
   }
 
   const hook = (payload: ComponentUsePayload) => {
@@ -154,8 +129,8 @@ export const Dynamic = <T>({
     unmount,
   }
 
-  if (DEV) {
-    c.DEV = DEV
+  if (dev) {
+    c.DEV = dev
   }
 
   return c

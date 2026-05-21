@@ -1,25 +1,23 @@
 import { derived, type Reactive, watch } from '@ben-js/reactivity'
 
 import {
-  ANONYMOUS_COMPONENT_NAME,
   type Component,
   COMPONENT_MEMBER_MARKER,
   COMPONENT_MEMBERS_MARKER,
-  type ComponentDevState,
   type ComponentHookFunction,
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
+  connectComponents,
+  disconnectComponents,
   getMountNode,
   isInDocument,
 } from '../component'
 import {
   ComponentType,
-  getCallerFunctionName,
-  IS_DEV,
+  createComponentDev,
   logEvent,
   LogEventType,
-  randomHexColor,
 } from '../dev'
 
 export const Swap = (
@@ -35,16 +33,9 @@ export const Swap = (
     disconnected: new Set<ComponentHookFunction>(),
   }
 
-  const DEV: ComponentDevState | null = IS_DEV
-    ? {
-        color: randomHexColor(),
-        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
-        type: ComponentType.SWAP,
-        get children() {
-          return memberComponent.value ? [memberComponent.value] : []
-        },
-      }
-    : null
+  const dev = createComponentDev(ComponentType.SWAP, () =>
+    getMemberComponents(memberComponent.value),
+  )
 
   const add = (component: Component) => {
     const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
@@ -53,7 +44,7 @@ export const Swap = (
   }
 
   const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node, DEV)
+    const target = getMountNode(node, dev)
     target.replaceWith(marker)
 
     if (memberComponent.value) {
@@ -73,12 +64,11 @@ export const Swap = (
       return
     }
 
-    memberComponent.value?.setConnected()
-
-    logEvent(LogEventType.CONNECTED, DEV)
-    hooks.connected.forEach(fn => {
-      fn()
-    })
+    connectComponents(
+      getMemberComponents(memberComponent.value),
+      dev,
+      hooks.connected,
+    )
   }
 
   const setDisconnected = () => {
@@ -86,12 +76,11 @@ export const Swap = (
       return
     }
 
-    memberComponent.value?.setDisconnected()
-
-    logEvent(LogEventType.DISCONNECTED, DEV)
-    hooks.disconnected.forEach(fn => {
-      fn()
-    })
+    disconnectComponents(
+      getMemberComponents(memberComponent.value),
+      dev,
+      hooks.disconnected,
+    )
   }
 
   const unmount = () => {
@@ -102,7 +91,7 @@ export const Swap = (
   const destroy = () => {
     memberComponent.value?.destroy()
     marker.remove()
-    logEvent(LogEventType.DESTROYED, DEV)
+    logEvent(LogEventType.DESTROYED, dev)
   }
 
   const hook = (payload: ComponentUsePayload) => {
@@ -136,9 +125,12 @@ export const Swap = (
     unmount,
   }
 
-  if (DEV) {
-    c.DEV = DEV
+  if (dev) {
+    c.DEV = dev
   }
 
   return c
 }
+
+const getMemberComponents = (component: Component | null): Array<Component> =>
+  component ? [component] : []

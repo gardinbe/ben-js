@@ -9,6 +9,23 @@ export const enableDevMode = () => {
   IS_DEV = true
 }
 
+const ANONYMOUS_COMPONENT_NAME = '[anonymous]'
+
+export const createComponentDev = (
+  type: ComponentType,
+  getChildren: () => Array<Component>,
+): ComponentDevState | null =>
+  IS_DEV
+    ? {
+        color: randomHexColor(),
+        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
+        type,
+        get children() {
+          return getChildren()
+        },
+      }
+    : null
+
 export const getCallerFunctionName = (): string | null => {
   // oxlint-disable-next-line unicorn/error-message
   const stack = new Error().stack
@@ -113,15 +130,15 @@ const getLogSymbol = (type: LogEventType) => {
   }
 }
 
-export const logEvent = (type: LogEventType, DEV: ComponentDevState | null) => {
-  if (!IS_DEV || !DEV) {
+export const logEvent = (type: LogEventType, dev: ComponentDevState | null) => {
+  if (!IS_DEV || !dev) {
     return
   }
 
   const { color, symbol } = getLogSymbol(type)
   console.log(
-    `%c${symbol} %c${DEV.name} (${DEV.type})`,
+    `%c${symbol} %c${dev.name} (${dev.type})`,
     `color:${color}`,
-    `color:${DEV.color}`,
+    `color:${dev.color}`,
   )
 }

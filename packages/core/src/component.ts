@@ -1,3 +1,4 @@
+import { logEvent, LogEventType } from './dev'
 import { createError, ErrorType } from './error'
 
 export interface Component {
@@ -33,7 +34,35 @@ export type ComponentUsePayload = {
   disconnected: ComponentHookFunction
 }
 
-export const ANONYMOUS_COMPONENT_NAME = '[anonymous]'
+export const connectComponents = (
+  components: Iterable<Component> | undefined,
+  dev: ComponentDevState | null,
+  hooks: Set<ComponentHookFunction>,
+) => {
+  for (const component of components ?? []) {
+    component.setConnected()
+  }
+
+  logEvent(LogEventType.CONNECTED, dev)
+  hooks.forEach(fn => {
+    fn()
+  })
+}
+
+export const disconnectComponents = (
+  components: Iterable<Component> | undefined,
+  dev: ComponentDevState | null,
+  hooks: Set<ComponentHookFunction>,
+) => {
+  for (const component of components ?? []) {
+    component.setDisconnected()
+  }
+
+  logEvent(LogEventType.DISCONNECTED, dev)
+  hooks.forEach(fn => {
+    fn()
+  })
+}
 
 export const COMPONENT_MARKER = ' ben-js.component '
 export const COMPONENT_CHILD_MARKER = ' ben-js.child-component '
@@ -54,12 +83,12 @@ const isChildNode = (node: unknown): node is ChildNode => {
 
 export const getMountNode = (
   node: ComponentMountTarget,
-  DEV: ComponentDevState | null,
+  dev: ComponentDevState | null,
 ): ChildNode => {
   const target = typeof node === 'string' ? document.querySelector(node) : node
 
   if (!isChildNode(target)) {
-    throw createError(ErrorType.MISSING_MOUNT_NODE, DEV)
+    throw createError(ErrorType.MISSING_MOUNT_NODE, dev)
   }
 
   return target

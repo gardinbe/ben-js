@@ -6,7 +6,6 @@ import {
 } from '@ben-js/reactivity'
 
 import {
-  ANONYMOUS_COMPONENT_NAME,
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
@@ -15,17 +14,17 @@ import {
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
+  connectComponents,
+  disconnectComponents,
   getMountNode,
   isComponent,
   isInDocument,
 } from '../component'
 import {
   ComponentType,
-  getCallerFunctionName,
-  IS_DEV,
+  createComponentDev,
   logEvent,
   LogEventType,
-  randomHexColor,
 } from '../dev'
 import { createError, ErrorType } from '../error'
 import { isRef, type Ref } from '../ref'
@@ -52,19 +51,12 @@ export const html = (
     disconnected: new Set<ComponentHookFunction>(),
   }
 
-  const DEV: ComponentDevState | null = IS_DEV
-    ? {
-        color: randomHexColor(),
-        name: getCallerFunctionName() ?? ANONYMOUS_COMPONENT_NAME,
-        type: ComponentType.STATIC,
-        get children() {
-          return [...(content?.components ?? [])]
-        },
-      }
-    : null
+  const dev = createComponentDev(ComponentType.STATIC, () => [
+    ...(content?.components ?? []),
+  ])
 
   const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node, DEV)
+    const target = getMountNode(node, dev)
     target.replaceWith(marker)
 
     if (nodes) {
@@ -88,15 +80,7 @@ export const html = (
       return
     }
 
-    content?.components.forEach(component => {
-      component.setConnected()
-    })
-
-    logEvent(LogEventType.CONNECTED, DEV)
-    hooks.connected.forEach(fn => {
-      fn()
-    })
-
+    connectComponents(content?.components, dev, hooks.connected)
     isMounted = true
   }
 
@@ -105,15 +89,7 @@ export const html = (
       return
     }
 
-    content?.components.forEach(component => {
-      component.setDisconnected()
-    })
-
-    logEvent(LogEventType.DISCONNECTED, DEV)
-    hooks.disconnected.forEach(fn => {
-      fn()
-    })
-
+    disconnectComponents(content?.components, dev, hooks.disconnected)
     isMounted = false
   }
 
@@ -143,7 +119,7 @@ export const html = (
     unmount()
     setDisconnected()
     nodes = null
-    logEvent(LogEventType.DESTROYED, DEV)
+    logEvent(LogEventType.DESTROYED, dev)
   }
 
   const render = () => {
@@ -157,7 +133,7 @@ export const html = (
     nodes = patch({
       content: nextContent,
       currentNodes: nodes,
-      DEV,
+      dev,
       marker,
       nextFragment,
       previousContent,
@@ -188,8 +164,8 @@ export const html = (
     unmount,
   }
 
-  if (DEV) {
-    c.DEV = DEV
+  if (dev) {
+    c.DEV = dev
   }
 
   return c
@@ -274,7 +250,7 @@ const stringify = (value: unknown): string =>
 type PatchOptions = {
   content: ComponentContent
   currentNodes: Array<ChildNode> | null
-  DEV: ComponentDevState | null
+  dev: ComponentDevState | null
   marker: Comment
   nextFragment: DocumentFragment
   previousContent: ComponentContent | null
@@ -285,7 +261,7 @@ type PatchOptions = {
 const patch = ({
   content,
   currentNodes,
-  DEV,
+  dev,
   marker,
   nextFragment,
   previousContent,
@@ -293,7 +269,7 @@ const patch = ({
   render,
 }: PatchOptions): Array<ChildNode> => {
   const replace = (): Array<ChildNode> => {
-    const frag = materializeFragment(cloneNode(nextFragment), content, DEV)
+    const frag = materializeFragment(cloneNode(nextFragment), content, dev)
     const nextNodes = [...frag.childNodes]
 
     currentNodes?.forEach(node => {
@@ -346,7 +322,7 @@ const patch = ({
     previousNodes: [...previousFragment.childNodes],
   })
 
-  syncRefs(nextFragment, currentNodes, content.refs, DEV)
+  syncRefs(nextFragment, currentNodes, content.refs, dev)
   return currentNodes
 }
 
@@ -359,13 +335,13 @@ const createFragment = (content: ComponentContent): DocumentFragment => {
 const materializeFragment = (
   frag: DocumentFragment,
   content: ComponentContent,
-  DEV: ComponentDevState | null,
+  dev: ComponentDevState | null,
 ): DocumentFragment => {
   content.refs.forEach(ref => {
     const el = frag.querySelector<HTMLElement>(`[ref='${ref.uuid}']`)
 
     if (!el) {
-      throw createError(ErrorType.MISSING_REF_TARGET, DEV)
+      throw createError(ErrorType.MISSING_REF_TARGET, dev)
     }
 
     el.removeAttribute('ref')
@@ -375,7 +351,7 @@ const materializeFragment = (
   const markers = getMarkers(frag, COMPONENT_CHILD_MARKER)
 
   if (markers.length !== content.components.size) {
-    throw createError(ErrorType.COMPONENT_MARKER_MISMATCH, DEV)
+    throw createError(ErrorType.COMPONENT_MARKER_MISMATCH, dev)
   }
 
   markers.forEach((marker, i) => {
@@ -524,7 +500,7 @@ const syncRefs = (
   fragment: DocumentFragment,
   currentNodes: Array<ChildNode>,
   refs: Set<Ref>,
-  DEV: ComponentDevState | null,
+  dev: ComponentDevState | null,
 ) => {
   const refsById = new Map<string, Ref>([...refs].map(ref => [ref.uuid, ref]))
 
@@ -536,7 +512,7 @@ const syncRefs = (
         const ref = refsById.get(uuid)
 
         if (!ref || !isHTMLElement(currentNode)) {
-          throw createError(ErrorType.MISSING_REF_TARGET, DEV)
+          throw createError(ErrorType.MISSING_REF_TARGET, dev)
         }
 
         currentNode.removeAttribute('ref')
