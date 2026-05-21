@@ -123,6 +123,9 @@ export const html = (
   const render = () => {
     const previousContent = content
     const nextContent = createContent(parts)
+
+    // todo: restore isSameContent function for performance
+
     const nextFragment = createFragment(nextContent)
 
     content = nextContent
