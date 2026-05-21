@@ -41,7 +41,6 @@ export const html = (
 
   let nodes: Array<ChildNode> | null = null
   let content: ComponentContent | null = null
-  let fragment: DocumentFragment | null = null
 
   const marker = document.createComment(COMPONENT_MARKER)
   let isMounted = false
@@ -115,7 +114,6 @@ export const html = (
       component.destroy()
     })
     content = null
-    fragment = null
     unmount()
     setDisconnected()
     nodes = null
@@ -124,20 +122,17 @@ export const html = (
 
   const render = () => {
     const previousContent = content
-    const previousFragment = fragment
     const nextContent = createContent(parts)
     const nextFragment = createFragment(nextContent)
 
     content = nextContent
-    fragment = nextFragment
     nodes = patch({
       content: nextContent,
-      currentNodes: nodes,
       dev,
       marker,
       nextFragment,
+      nodes: nodes,
       previousContent,
-      previousFragment,
       render,
     })
   }
@@ -169,22 +164,6 @@ export const html = (
   }
 
   return c
-}
-
-const withDifference = <T>(
-  target: Set<T> | undefined,
-  other: Set<T> | undefined,
-  fn: (item: T) => void,
-) => {
-  if (!target) {
-    return
-  }
-
-  if (other) {
-    target.difference(other).forEach(fn)
-  } else {
-    target.forEach(fn)
-  }
 }
 
 type ComponentContent = {
@@ -247,89 +226,75 @@ const stringify = (value: unknown): string =>
   // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
   value != null && value !== false ? `${value}` : ''
 
+const createFragment = (content: ComponentContent): DocumentFragment => {
+  const tpl = document.createElement('template')
+  tpl.innerHTML = content.html
+  return tpl.content
+}
+
+const withDifference = <T>(
+  target: Set<T> | undefined,
+  other: Set<T> | undefined,
+  fn: (item: T) => void,
+) => {
+  if (!target) {
+    return
+  }
+
+  if (other) {
+    target.difference(other).forEach(fn)
+  } else {
+    target.forEach(fn)
+  }
+}
+
 type PatchOptions = {
   content: ComponentContent
-  currentNodes: Array<ChildNode> | null
   dev: ComponentDevState | null
   marker: Comment
   nextFragment: DocumentFragment
+  nodes: Array<ChildNode> | null
   previousContent: ComponentContent | null
-  previousFragment: DocumentFragment | null
   render: () => void
 }
 
 const patch = ({
   content,
-  currentNodes,
   dev,
   marker,
   nextFragment,
+  nodes,
   previousContent,
-  previousFragment,
   render,
 }: PatchOptions): Array<ChildNode> => {
-  const replace = (): Array<ChildNode> => {
-    const frag = materializeFragment(cloneNode(nextFragment), content, dev)
+  withDifference(previousContent?.reactives, content.reactives, rx => {
+    unsubscribe(rx, render)
+  })
+
+  withDifference(previousContent?.refs, content.refs, ref => {
+    ref.set(null)
+  })
+
+  withDifference(previousContent?.components, content.components, component => {
+    component.destroy()
+  })
+
+  withDifference(content.reactives, previousContent?.reactives, rx => {
+    subscribe(rx, render)
+  })
+
+  if (!nodes) {
+    // todo: edge case where a component mounts to a top-level node
+    const frag = materializeFragment(nextFragment, content, dev)
     const nextNodes = [...frag.childNodes]
-
-    currentNodes?.forEach(node => {
-      node.remove()
-    })
-
-    marker.parentNode?.insertBefore(frag, marker)
+    marker.before(frag)
     return nextNodes
   }
 
-  const syncContent = () => {
-    withDifference(previousContent?.reactives, content.reactives, rx => {
-      unsubscribe(rx, render)
-    })
+  patchChildren(nodes, [...nextFragment.childNodes])
 
-    withDifference(previousContent?.refs, content.refs, ref => {
-      ref.set(null)
-    })
-
-    withDifference(
-      previousContent?.components,
-      content.components,
-      component => {
-        component.destroy()
-      },
-    )
-
-    withDifference(content.reactives, previousContent?.reactives, rx => {
-      subscribe(rx, render)
-    })
-  }
-
-  if (
-    !previousFragment ||
-    !currentNodes ||
-    // Child components expand one marker into a range of nodes, so keep that
-    // path conservative until component ranges have explicit boundaries.
-    hasComponentMarkers(previousFragment) ||
-    hasComponentMarkers(nextFragment)
-  ) {
-    syncContent()
-    return replace()
-  }
-
-  syncContent()
-  patchChildren({
-    currentNodes,
-    marker,
-    nextNodes: [...nextFragment.childNodes],
-    previousNodes: [...previousFragment.childNodes],
-  })
-
-  syncRefs(nextFragment, currentNodes, content.refs, dev)
-  return currentNodes
-}
-
-const createFragment = (content: ComponentContent): DocumentFragment => {
-  const tpl = document.createElement('template')
-  tpl.innerHTML = content.html
-  return tpl.content
+  syncRefs(nodes, nextFragment, content.refs, dev)
+  return nodes
 }
 
 const materializeFragment = (
@@ -361,192 +326,148 @@ const materializeFragment = (
   return frag
 }
 
-type PatchChildrenOptions = {
-  currentNodes: Array<ChildNode>
-  nextNodes: Array<ChildNode>
-  previousNodes: Array<ChildNode>
-  marker?: Comment
-  parent?: Node
-}
-
-const patchChildren = ({
-  currentNodes,
-  marker,
-  nextNodes,
-  parent,
-  previousNodes,
-}: PatchChildrenOptions) => {
-  const getParent = (): Node | null =>
-    parent ?? currentNodes[0]?.parentNode ?? marker?.parentNode ?? null
-
+const patchChildren = (
+  nodes: Array<ChildNode>,
+  nextNodes: Array<ChildNode>,
+) => {
   let index = 0
 
-  while (
-    index < previousNodes.length ||
-    index < nextNodes.length ||
-    index < currentNodes.length
-  ) {
-    const currentNode = currentNodes[index]
+  while (index < nodes.length || index < nextNodes.length) {
+    const node = nodes[index]
     const nextNode = nextNodes[index]
-    const previousNode = previousNodes[index]
 
     if (!nextNode) {
-      currentNode?.remove()
-      currentNodes.splice(index, 1)
-      previousNodes.splice(index, 1)
+      node?.remove()
+      nodes.splice(index, 1)
       continue
     }
 
-    if (!currentNode || !previousNode) {
-      const node = cloneNode(nextNode)
-      getParent()?.insertBefore(node, currentNode ?? marker ?? null)
-      currentNodes.splice(index, 0, node)
+    if (!node) {
+      nodes.at(-1)?.after(nextNode)
+      nodes.splice(index, 0, nextNode)
       index += 1
       continue
     }
 
-    if (!canPatchNode(previousNode, nextNode, currentNode)) {
-      const node = cloneNode(nextNode)
-      currentNode.replaceWith(node)
-      currentNodes[index] = node
+    if (!canPatchNode(node, nextNode)) {
+      node.replaceWith(nextNode)
+      nodes[index] = nextNode
       index += 1
       continue
     }
 
-    patchNode(currentNode, previousNode, nextNode)
+    patchNode(node, nextNode)
     index += 1
   }
 }
 
-const patchNode = (
-  currentNode: ChildNode,
-  previousNode: ChildNode,
-  nextNode: ChildNode,
-) => {
-  if (isTextNode(currentNode) && isTextNode(nextNode)) {
-    if (currentNode.data !== nextNode.data) {
-      currentNode.data = nextNode.data
+// todo: verify consistent use of array index and .at()
+
+const patchNode = (node: ChildNode, nextNode: ChildNode) => {
+  if (isTextNode(node) && isTextNode(nextNode)) {
+    if (node.data !== nextNode.data) {
+      node.data = nextNode.data
     }
 
     return
   }
 
-  if (isCommentNode(currentNode) && isCommentNode(nextNode)) {
-    if (currentNode.data !== nextNode.data) {
-      currentNode.data = nextNode.data
+  if (isCommentNode(node) && isCommentNode(nextNode)) {
+    if (node.data !== nextNode.data) {
+      node.data = nextNode.data
     }
 
     return
   }
 
-  if (
-    isElementNode(currentNode) &&
-    isElementNode(previousNode) &&
-    isElementNode(nextNode)
-  ) {
-    patchAttributes(currentNode, nextNode)
-    patchChildren({
-      currentNodes: [...currentNode.childNodes],
-      nextNodes: [...nextNode.childNodes],
-      parent: currentNode,
-      previousNodes: [...previousNode.childNodes],
-    })
+  if (isElementNode(node) && isElementNode(nextNode)) {
+    patchAttributes(node, nextNode)
+    patchChildren([...node.childNodes], [...nextNode.childNodes])
   }
 }
 
-const patchAttributes = (current: Element, next: Element) => {
+const patchAttributes = (node: Element, nextNode: Element) => {
   const nextAttributes = new Map(
-    [...next.attributes].map(attr => [attr.name, attr.value]),
+    [...nextNode.attributes].map(attr => [attr.name, attr.value]),
   )
 
-  ;[...current.attributes].forEach(attr => {
-    if (!nextAttributes.has(attr.name)) {
-      current.removeAttribute(attr.name)
+  ;[...node.attributes].forEach(attr => {
+    if (nextAttributes.has(attr.name)) {
+      return
     }
+
+    node.removeAttribute(attr.name)
   })
 
   nextAttributes.forEach((value, name) => {
-    if (current.getAttribute(name) !== value) {
-      current.setAttribute(name, value)
+    if (node.getAttribute(name) === value) {
+      return
     }
+
+    node.setAttribute(name, value)
   })
 }
 
-const canPatchNode = (
-  previousNode: ChildNode,
-  nextNode: ChildNode,
-  currentNode: ChildNode,
-): boolean => {
-  if (
-    previousNode.nodeType !== nextNode.nodeType ||
-    currentNode.nodeType !== nextNode.nodeType
-  ) {
+const canPatchNode = (node: ChildNode, nextNode: ChildNode): boolean => {
+  if (node.nodeType !== nextNode.nodeType) {
     return false
   }
 
-  if (!isElementNode(previousNode)) {
+  if (!isElementNode(node)) {
     return true
   }
 
-  return (
-    isElementNode(nextNode) &&
-    isElementNode(currentNode) &&
-    previousNode.tagName === nextNode.tagName &&
-    currentNode.tagName === nextNode.tagName
-  )
+  return isElementNode(nextNode) && node.tagName === nextNode.tagName
 }
 
 const syncRefs = (
+  nodes: Array<ChildNode>,
   fragment: DocumentFragment,
-  currentNodes: Array<ChildNode>,
   refs: Set<Ref>,
   dev: ComponentDevState | null,
 ) => {
   const refsById = new Map<string, Ref>([...refs].map(ref => [ref.uuid, ref]))
 
-  const sync = (templateNode: ChildNode, currentNode: ChildNode) => {
+  const sync = (node: ChildNode, templateNode: ChildNode) => {
     if (isElementNode(templateNode)) {
       const uuid = templateNode.getAttribute('ref')
 
       if (uuid) {
         const ref = refsById.get(uuid)
 
-        if (!ref || !isHTMLElement(currentNode)) {
+        if (!ref || !isHTMLElement(node)) {
           throw createError(ErrorType.MISSING_REF_TARGET, dev)
         }
 
-        currentNode.removeAttribute('ref')
-        ref.set(currentNode)
+        node.removeAttribute('ref')
+        ref.set(node)
       }
     }
 
+    const children = [...node.childNodes]
     const templateChildren = [...templateNode.childNodes]
-    const currentChildren = [...currentNode.childNodes]
 
-    templateChildren.forEach((child, i) => {
-      const currentChild = currentChildren[i]
+    templateChildren.forEach((templateChild, i) => {
+      const child = children[i]
 
-      if (currentChild) {
-        sync(child, currentChild)
+      if (!child) {
+        return
       }
+
+      sync(child, templateChild)
     })
   }
 
-  ;[...fragment.childNodes].forEach((node, i) => {
-    const currentNode = currentNodes[i]
+  ;[...fragment.childNodes].forEach((nextNode, i) => {
+    const node = nodes[i]
 
-    if (currentNode) {
-      sync(node, currentNode)
+    if (!node) {
+      return
     }
+
+    sync(node, nextNode)
   })
 }
-
-const hasComponentMarkers = (fragment: DocumentFragment): boolean =>
-  getMarkers(fragment, COMPONENT_CHILD_MARKER).length > 0
-
-const cloneNode = <T extends Node>(node: T): T =>
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-  node.cloneNode(true) as T
 
 const isCommentNode = (node: Node): node is Comment =>
   node.nodeType === Node.COMMENT_NODE
