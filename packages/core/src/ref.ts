@@ -45,10 +45,10 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
 
   watch(
     element,
-    (next, prev) => {
-      if (prev) {
+    (next, previous) => {
+      if (previous) {
         listeners.forEach(listener => {
-          prev.removeEventListener(
+          previous.removeEventListener(
             listener.type,
             listener.callback,
             listener.options,

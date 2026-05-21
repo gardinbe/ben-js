@@ -8,10 +8,10 @@ export const List = (
 ): Component =>
   Dynamic({
     diff: {
-      addNew: prev => nextItem =>
-        !prev.some(prevItem => prevItem.key === nextItem.key),
-      removeOld: next => prevItem =>
-        !next.some(nextItem => nextItem.key === prevItem.key),
+      addNew: previous => nextItem =>
+        !previous.some(previousItem => previousItem.key === nextItem.key),
+      removeOld: next => previousItem =>
+        !next.some(nextItem => nextItem.key === previousItem.key),
     },
     items,
     transform: item => item.component,

@@ -4,7 +4,7 @@ export type Effect = () => void
 
 export const subscriptions = new WeakMap<Reactive, Set<Effect>>()
 
-export const subscribe = <T>(rx: Reactive<T>, effect: Effect): void => {
+export const subscribe = <T>(rx: Reactive<T>, effect: Effect) => {
   let subscribers = subscriptions.get(rx)
 
   if (!subscribers) {
@@ -15,7 +15,7 @@ export const subscribe = <T>(rx: Reactive<T>, effect: Effect): void => {
   subscribers.add(effect)
 }
 
-export const unsubscribe = (rx: Reactive, effect: Effect): void => {
+export const unsubscribe = (rx: Reactive, effect: Effect) => {
   const subscribers = subscriptions.get(rx)
   subscribers?.delete(effect)
 }

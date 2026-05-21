@@ -24,7 +24,7 @@ export type RouteDefinition = {
 
 export const currentRoutes = reactive<Array<RouteDefinition>>([])
 
-export const useRoutes = (routes: Array<RouteDefinition>): void => {
+export const useRoutes = (routes: Array<RouteDefinition>) => {
   currentRoutes.value = routes
 }
 
@@ -89,12 +89,12 @@ addEventListener('popstate', () => {
   currentPath.value = location.pathname
 })
 
-export const go = (path: string): void => {
+export const go = (path: string) => {
   currentPath.value = path
   history.pushState(null, '', path)
 }
 
-export const back = (): void => {
+export const back = () => {
   history.back()
 }
 

@@ -117,12 +117,12 @@ export const Swap = (
     return c
   }
 
-  watch(memberComponent, (next, prev) => {
-    if (!next || next === prev) {
+  watch(memberComponent, (next, previous) => {
+    if (!next || next === previous) {
       return
     }
 
-    prev?.destroy()
+    previous?.destroy()
     add(next)
   })
 

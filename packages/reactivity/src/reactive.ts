@@ -30,7 +30,7 @@ export type Effect = () => void
 
 let activeEffect: Effect | null = null
 
-export const track = (rx: Reactive): void => {
+export const track = (rx: Reactive) => {
   if (!activeEffect) {
     return
   }
@@ -38,7 +38,7 @@ export const track = (rx: Reactive): void => {
   subscribe(rx, activeEffect)
 }
 
-export const trigger = (rx: Reactive): void => {
+export const trigger = (rx: Reactive) => {
   const subscribers = subscriptions.get(rx)
   const effect = activeEffect
 
@@ -49,7 +49,7 @@ export const trigger = (rx: Reactive): void => {
   activeEffect = effect
 }
 
-export const ctx = (effect: Effect): void => {
+export const ctx = (effect: Effect) => {
   activeEffect = effect
   effect()
   activeEffect = null

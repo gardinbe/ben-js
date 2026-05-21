@@ -128,8 +128,8 @@ export const Dynamic = <T>({
     return c
   }
 
-  watch(members, (next, prev) => {
-    prev
+  watch(members, (next, previous) => {
+    previous
       .filter(diff.removeOld(next))
       .map(transform)
       .forEach(component => {
@@ -137,7 +137,7 @@ export const Dynamic = <T>({
       })
 
     next
-      .filter(diff.addNew(prev))
+      .filter(diff.addNew(previous))
       .map(transform)
       .forEach(component => {
         add(component)
@@ -168,8 +168,8 @@ export type DynamicPayload<T> = {
 }
 
 export type DynamicPayloadDiff<T> = {
-  addNew: (prev: Array<T>) => (nextItem: T) => boolean
-  removeOld: (next: Array<T>) => (prevItem: T) => boolean
+  addNew: (previous: Array<T>) => (nextItem: T) => boolean
+  removeOld: (next: Array<T>) => (previousItem: T) => boolean
 }
 
 export type KeyedComponent = {

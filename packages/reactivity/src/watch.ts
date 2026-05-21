@@ -8,12 +8,12 @@ export const watch: Watch = <T>(
 ): Watcher => {
   let value = rx.value
 
-  const effect = (): void => {
+  const effect = () => {
     fn(rx.value, value)
     value = rx.value
   }
 
-  const stop = (): void => {
+  const stop = () => {
     unsubscribe(rx, effect)
   }
 
@@ -43,7 +43,7 @@ export type Watcher = {
 
 export type WatchFunction<TNext, TPrev = TNext> = (
   next: TNext,
-  prev: TPrev,
+  previous: TPrev,
 ) => void
 
 export type WatchImmediateOptions = {
