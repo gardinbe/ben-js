@@ -379,7 +379,15 @@ const walkPatch = (
       nodes.push(nextNode)
 
       if (isElementNode(nextNode)) {
-        walkPatch([], [...nextNode.childNodes], nextNode, components, refs)
+        const refAttribute = nextNode.getAttribute('ref')
+
+        if (refAttribute) {
+          nextNode.removeAttribute('ref')
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+          refs.shift()?.set(nextNode as HTMLElement)
+        }
+
+        walk([...nextNode.childNodes], components, refs)
       }
 
       index += 1
@@ -406,6 +414,8 @@ const walkPatch = (
 
       patchAttributes(node, nextNode)
 
+      debugger
+
       walkPatch(
         [...node.childNodes],
         [...nextNode.childNodes],
@@ -426,7 +436,7 @@ const walkPatch = (
           refs.shift()?.set(nextNode as HTMLElement)
         }
 
-        walkPatch([], [...nextNode.childNodes], nextNode, components, refs)
+        walk([...nextNode.childNodes], components, refs)
       }
     }
 
