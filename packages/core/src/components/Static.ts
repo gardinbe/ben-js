@@ -9,8 +9,10 @@ import {
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
+  COMPONENT_MEMBERS_MARKER,
   type ComponentDevState,
   type ComponentHookFunction,
+  ComponentMarkerSymbol,
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
@@ -124,17 +126,17 @@ export const html = (
     const previousContent = content
     const nextContent = createContent(parts)
 
-    // todo: restore isSameContent function for performance
+    // todo: restore isSameContent function for performance?
 
     const nextFragment = createFragment(nextContent)
 
     content = nextContent
     nodes = patch({
-      content: nextContent,
+      content,
       dev,
       marker,
       nextFragment,
-      nodes: nodes,
+      nodes,
       previousContent,
       render,
     })
@@ -153,6 +155,7 @@ export const html = (
   }
 
   const c: Component = {
+    [ComponentMarkerSymbol]: marker,
     [ComponentSymbol]: true,
     destroy,
     hook,
@@ -294,9 +297,20 @@ const patch = ({
     return nextNodes
   }
 
-  patchChildren(nodes, [...nextFragment.childNodes])
+  const parent = marker.parentNode
 
-  syncRefs(nodes, nextFragment, content.refs, dev)
+  if (!parent) {
+    return nodes
+  }
+
+  // const currentNodes = nodes.filter(node => node.parentNode === parent)
+
+  patchNodes(nodes, [...nextFragment.childNodes], parent, {
+    anchor: marker,
+    components: [...content.components],
+    previousComponents: previousContent?.components,
+  })
+  syncRefs(nodes, content.refs, dev)
   return nodes
 }
 
@@ -329,15 +343,18 @@ const materializeFragment = (
   return frag
 }
 
-const patchChildren = (
+const patchNodes = (
   nodes: Array<ChildNode>,
   nextNodes: Array<ChildNode>,
+  parent: ParentNode,
+  options: PatchChildrenOptions,
 ) => {
   let index = 0
+  let nextIndex = 0
 
-  while (index < nodes.length || index < nextNodes.length) {
+  while (index < nodes.length || nextIndex < nextNodes.length) {
     const node = nodes[index]
-    const nextNode = nextNodes[index]
+    const nextNode = nextNodes[nextIndex]
 
     if (!nextNode) {
       node?.remove()
@@ -345,28 +362,79 @@ const patchChildren = (
       continue
     }
 
+    if (isComponentPlaceholder(nextNode)) {
+      const component = options.components[options.componentIndex ?? 0]
+      options.componentIndex = (options.componentIndex ?? 0) + 1
+
+      if (component && options.previousComponents?.has(component)) {
+        const markerIndex = findComponentMarkerIndex(nodes, index, component)
+
+        if (markerIndex >= index) {
+          index = markerIndex + 1
+          nextIndex += 1
+          continue
+        }
+      }
+
+      const componentNodes = component
+        ? mountComponent(component, parent, node ?? options.anchor)
+        : [nextNode]
+
+      if (node) {
+        node.remove()
+        nodes.splice(index, 1, ...componentNodes)
+      } else {
+        nodes.splice(index, 0, ...componentNodes)
+      }
+
+      index += componentNodes.length
+      nextIndex += 1
+      continue
+    }
+
     if (!node) {
-      nodes.at(-1)?.after(nextNode)
+      if (options.anchor) {
+        options.anchor.before(nextNode)
+      } else {
+        parent.append(nextNode)
+      }
+
+      mountComponentPlaceholders(nextNode, options)
       nodes.splice(index, 0, nextNode)
       index += 1
+      nextIndex += 1
       continue
     }
 
     if (!canPatchNode(node, nextNode)) {
       node.replaceWith(nextNode)
+      mountComponentPlaceholders(nextNode, options)
       nodes[index] = nextNode
       index += 1
+      nextIndex += 1
       continue
     }
 
-    patchNode(node, nextNode)
+    patchNode(node, nextNode, options)
     index += 1
+    nextIndex += 1
   }
 }
 
 // todo: verify consistent use of array index and .at()
 
-const patchNode = (node: ChildNode, nextNode: ChildNode) => {
+type PatchChildrenOptions = {
+  components: Array<Component>
+  previousComponents: Set<Component> | undefined
+  anchor?: ChildNode | null
+  componentIndex?: number
+}
+
+const patchNode = (
+  node: ChildNode,
+  nextNode: ChildNode,
+  options: PatchChildrenOptions,
+) => {
   if (isTextNode(node) && isTextNode(nextNode)) {
     if (node.data !== nextNode.data) {
       node.data = nextNode.data
@@ -385,7 +453,7 @@ const patchNode = (node: ChildNode, nextNode: ChildNode) => {
 
   if (isElementNode(node) && isElementNode(nextNode)) {
     patchAttributes(node, nextNode)
-    patchChildren([...node.childNodes], [...nextNode.childNodes])
+    patchNodes([...node.childNodes], [...nextNode.childNodes], node, options)
   }
 }
 
@@ -425,52 +493,127 @@ const canPatchNode = (node: ChildNode, nextNode: ChildNode): boolean => {
 
 const syncRefs = (
   nodes: Array<ChildNode>,
-  fragment: DocumentFragment,
   refs: Set<Ref>,
   dev: ComponentDevState | null,
 ) => {
-  const refsById = new Map<string, Ref>([...refs].map(ref => [ref.uuid, ref]))
-
-  const sync = (node: ChildNode, templateNode: ChildNode) => {
-    if (isElementNode(templateNode)) {
-      const uuid = templateNode.getAttribute('ref')
-
-      if (uuid) {
-        const ref = refsById.get(uuid)
-
-        if (!ref || !isHTMLElement(node)) {
-          throw createError(ErrorType.MISSING_REF_TARGET, dev)
-        }
-
-        node.removeAttribute('ref')
-        ref.set(node)
-      }
-    }
-
-    const children = [...node.childNodes]
-    const templateChildren = [...templateNode.childNodes]
-
-    templateChildren.forEach((templateChild, i) => {
-      const child = children[i]
-
-      if (!child) {
-        return
-      }
-
-      sync(child, templateChild)
-    })
-  }
-
-  ;[...fragment.childNodes].forEach((nextNode, i) => {
-    const node = nodes[i]
+  refs.forEach(ref => {
+    const node = findRefTarget(nodes, ref.uuid)
 
     if (!node) {
-      return
+      throw createError(ErrorType.MISSING_REF_TARGET, dev)
     }
 
-    sync(node, nextNode)
+    node.removeAttribute('ref')
+    ref.set(node)
   })
 }
+
+const findRefTarget = (
+  nodes: Array<ChildNode>,
+  uuid: string,
+): HTMLElement | null => {
+  for (const node of nodes) {
+    if (!isElementNode(node)) {
+      continue
+    }
+
+    if (node.getAttribute('ref') === uuid) {
+      if (!isHTMLElement(node)) {
+        return null
+      }
+
+      return node
+    }
+
+    const target = node.querySelector<HTMLElement>(`[ref='${uuid}']`)
+
+    if (target) {
+      return target
+    }
+  }
+
+  return null
+}
+
+const mountComponent = (
+  component: Component,
+  parent: ParentNode,
+  anchor: ChildNode | null = null,
+): Array<ChildNode> => {
+  const start = document.createComment('')
+  const end = document.createComment('')
+  const marker = document.createComment(COMPONENT_CHILD_MARKER)
+
+  if (anchor) {
+    anchor.before(start, marker, end)
+  } else {
+    parent.append(start, marker, end)
+  }
+
+  component.mount(marker)
+
+  const nodes: Array<ChildNode> = []
+  let node = start.nextSibling
+
+  while (node && node !== end) {
+    nodes.push(node)
+    node = node.nextSibling
+  }
+
+  start.remove()
+  end.remove()
+
+  return nodes
+}
+
+const mountComponentPlaceholders = (
+  root: ChildNode,
+  options: PatchChildrenOptions,
+) => {
+  if (!isElementNode(root)) {
+    return
+  }
+
+  getMarkers(root, COMPONENT_CHILD_MARKER).forEach(marker => {
+    const component = options.components[options.componentIndex ?? 0]
+    options.componentIndex = (options.componentIndex ?? 0) + 1
+
+    component?.mount(marker)
+  })
+}
+
+const findComponentMarkerIndex = (
+  nodes: Array<ChildNode>,
+  startIndex: number,
+  component: Component,
+): number => {
+  const marker = component[ComponentMarkerSymbol]
+
+  if (marker) {
+    const index = nodes.indexOf(marker)
+
+    return index >= startIndex ? index : -1
+  }
+
+  for (let i = startIndex; i < nodes.length; i += 1) {
+    const node = nodes[i]
+
+    if (!node || !isComponentMarker(node)) {
+      continue
+    }
+
+    return i
+  }
+
+  return -1
+}
+
+const isComponentPlaceholder = (node: Node): node is Comment =>
+  isCommentNode(node) && node.data === COMPONENT_CHILD_MARKER
+
+const isComponentMarker = (node: Node): node is Comment =>
+  isCommentNode(node) &&
+  (node.data === COMPONENT_MARKER || node.data === COMPONENT_MEMBERS_MARKER)
 
 const isCommentNode = (node: Node): node is Comment =>
   node.nodeType === Node.COMMENT_NODE

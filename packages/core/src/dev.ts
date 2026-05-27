@@ -101,9 +101,9 @@ export const ComponentType = {
 
 export type LogEventType = Enum<typeof LogEventType>
 export const LogEventType = {
-  CONNECTED: 0,
-  DESTROYED: 2,
-  DISCONNECTED: 1,
+  CONNECTED: 'connected',
+  DESTROYED: 'destroyed',
+  DISCONNECTED: 'disconnected',
 } as const
 
 const getLogSymbol = (type: LogEventType) => {

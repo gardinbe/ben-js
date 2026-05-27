@@ -2,14 +2,13 @@ import { type Enum } from '@ben-js/common'
 
 import { type ComponentDevState } from './component'
 
-export const ErrorType = {
-  COMPONENT_MARKER_MISMATCH: 2,
-  DEV_MODE_NOT_ENABLED: 3,
-  MISSING_MOUNT_NODE: 0,
-  MISSING_REF_TARGET: 1,
-} as const
-
 export type ErrorType = Enum<typeof ErrorType>
+export const ErrorType = {
+  COMPONENT_MARKER_MISMATCH: 'component-marker-mismatch',
+  DEV_MODE_NOT_ENABLED: 'dev-mode-not-enabled',
+  MISSING_MOUNT_NODE: 'missing-mount-node',
+  MISSING_REF_TARGET: 'missing-ref-target',
+} as const
 
 const PREFIX = 'Ben-js'
 

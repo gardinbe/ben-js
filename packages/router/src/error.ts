@@ -1,7 +1,7 @@
 import { type Enum } from '@ben-js/common'
 
 export const ErrorType = {
-  MISSING_ROUTE: 0,
+  MISSING_ROUTE: 'missing-route',
 } as const
 
 export type ErrorType = Enum<typeof ErrorType>

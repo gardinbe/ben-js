@@ -5,6 +5,7 @@ import {
   COMPONENT_MEMBER_MARKER,
   COMPONENT_MEMBERS_MARKER,
   type ComponentHookFunction,
+  ComponentMarkerSymbol,
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
@@ -116,6 +117,7 @@ export const Swap = (
   })
 
   const c: Component = {
+    [ComponentMarkerSymbol]: marker,
     [ComponentSymbol]: true,
     destroy,
     hook,

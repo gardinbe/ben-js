@@ -3,6 +3,7 @@ import { createError, ErrorType } from './error'
 
 export interface Component {
   readonly [ComponentSymbol]: true
+  readonly [ComponentMarkerSymbol]?: Comment
   DEV?: ComponentDevState
   readonly destroy: () => void
   readonly hook: (payload: ComponentUsePayload) => this
@@ -13,6 +14,7 @@ export interface Component {
 }
 
 export const ComponentSymbol = Symbol('ben-js.component')
+export const ComponentMarkerSymbol = Symbol('ben-js.component.marker')
 
 export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && ComponentSymbol in value
