@@ -126,8 +126,6 @@ export const html = (
 
     // todo: restore isSameContent function for performance?
 
-    const nextFragment = createFragment(nextContent)
-
     content = nextContent
     nodes = patch({
       content,
@@ -172,7 +170,7 @@ export const html = (
 
 type ComponentContent = {
   components: Array<Component>
-  html: string
+  fragment: DocumentFragment
   reactives: Set<Reactive>
   refs: Array<Ref>
 }
@@ -218,9 +216,13 @@ const createContent = (parts: TemplateParts): ComponentContent => {
     .map((str, i) => str + parseValue(parts.values[i]))
     .join('')
 
+  const tpl = document.createElement('template')
+  tpl.innerHTML = htmlContent
+  const fragment = tpl.content
+
   return {
     components,
-    html: htmlContent,
+    fragment,
     reactives,
     refs,
   }
@@ -230,17 +232,10 @@ const stringify = (value: unknown): string =>
   // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
   value != null && value !== false ? `${value}` : ''
 
-const createFragment = (content: ComponentContent): DocumentFragment => {
-  const tpl = document.createElement('template')
-  tpl.innerHTML = content.html
-  return tpl.content
-}
-
 type PatchOptions = {
   content: ComponentContent
   dev: ComponentDevState | null
   marker: Comment
-  nextFragment: DocumentFragment
   nodes: Array<ChildNode> | null
   previousContent: ComponentContent | null
   render: () => void
@@ -249,7 +244,6 @@ type PatchOptions = {
 const patch = ({
   content,
   marker,
-  nextFragment,
   nodes,
   previousContent,
   render,
@@ -281,7 +275,7 @@ const patch = ({
     })
   }
 
-  const nextNodes = [...nextFragment.childNodes]
+  const nextNodes = [...content.fragment.childNodes]
 
   if (!nodes) {
     // todo: edge case where a component mounts to a top-level node
@@ -353,7 +347,9 @@ const walkPatch = (
     const nextNode = nextNodes[index]
 
     if (!nextNode) {
-      nodes.splice(index).forEach(removedNode => removedNode.remove())
+      nodes.splice(index).forEach(removedNode => {
+        removedNode.remove()
+      })
       break
     }
 
@@ -413,8 +409,6 @@ const walkPatch = (
       }
 
       patchAttributes(node, nextNode)
-
-      debugger
 
       walkPatch(
         [...node.childNodes],
