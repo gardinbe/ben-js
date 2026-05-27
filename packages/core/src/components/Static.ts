@@ -9,7 +9,6 @@ import {
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
-  COMPONENT_MEMBERS_MARKER,
   type ComponentDevState,
   type ComponentHookFunction,
   ComponentMarkerSymbol,
@@ -28,7 +27,6 @@ import {
   logEvent,
   LogEventType,
 } from '../dev'
-import { createError, ErrorType } from '../error'
 import { isRef, type Ref } from '../ref'
 import { isStatic } from '../static'
 
@@ -238,22 +236,6 @@ const createFragment = (content: ComponentContent): DocumentFragment => {
   return tpl.content
 }
 
-const withDifference = <T>(
-  target: Set<T> | undefined,
-  other: Set<T> | undefined,
-  fn: (item: T) => void,
-) => {
-  if (!target) {
-    return
-  }
-
-  if (other) {
-    target.difference(other).forEach(fn)
-  } else {
-    target.forEach(fn)
-  }
-}
-
 type PatchOptions = {
   content: ComponentContent
   dev: ComponentDevState | null
@@ -266,7 +248,6 @@ type PatchOptions = {
 
 const patch = ({
   content,
-  dev,
   marker,
   nextFragment,
   nodes,
@@ -310,13 +291,9 @@ const patch = ({
     return nextNodes
   }
 
-  const parent = marker.parentNode
+  const parent = marker.parentNode!
 
   // todo: think about removing this if stmt?
-
-  if (!parent) {
-    return nodes
-  }
 
   // const currentNodes = nodes.filter(node => node.parentNode === parent)
 
@@ -324,44 +301,18 @@ const patch = ({
   return nodes
 }
 
-const materializeFragment = (
-  frag: DocumentFragment,
-  content: ComponentContent,
-  dev: ComponentDevState | null,
-) => {
-  content.refs.forEach(ref => {
-    const el = frag.querySelector<HTMLElement>(`[ref='${ref.uuid}']`)
-
-    if (!el) {
-      throw createError(ErrorType.MISSING_REF_TARGET, dev)
-    }
-
-    el.removeAttribute('ref')
-    ref.set(el)
-  })
-
-  const markers = getMarkers(frag, COMPONENT_CHILD_MARKER)
-
-  if (markers.length !== content.components.size) {
-    throw createError(ErrorType.COMPONENT_MARKER_MISMATCH, dev)
-  }
-
-  markers.forEach((marker, i) => {
-    ;[...content.components][i]!.mount(marker)
-  })
-}
-
 const walk = (
   nodes: Array<ChildNode>,
   components: Array<Component>,
   refs: Array<Ref>,
 ) => {
+  console.log('walk')
   let index = 0
 
   while (index < nodes.length) {
     const node = nodes[index]!
 
-    if (isComponentMarker(node)) {
+    if (isChildComponentMarker(node)) {
       // todo: dev errors if missing
       components.shift()?.mount(node)
       nodes.splice(index, 1)
@@ -394,6 +345,7 @@ const walkPatch = (
   components: Array<Component>,
   refs: Array<Ref>,
 ) => {
+  console.log('walkpatch')
   let index = 0
 
   while (index < nodes.length || index < nextNodes.length) {
@@ -405,7 +357,7 @@ const walkPatch = (
       break
     }
 
-    if (isComponentMarker(nextNode)) {
+    if (isChildComponentMarker(nextNode)) {
       components.shift()?.mount(nextNode)
       nextNodes.splice(index, 1)
       // do not increment index
@@ -442,13 +394,14 @@ const walkPatch = (
       if (node.data !== nextNode.data) {
         node.data = nextNode.data
       }
-    } else if (isElementNode(node) && isElementNode(nextNode)) {
-      const refAttribute = nextNode.getAttribute('ref')
-
-      if (refAttribute) {
+    } else if (
+      node.nodeName === nextNode.nodeName &&
+      isElementNode(node) &&
+      isElementNode(nextNode)
+    ) {
+      if (nextNode.hasAttribute('ref')) {
         nextNode.removeAttribute('ref')
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        refs.shift()?.set(nextNode as HTMLElement)
+        refs.shift()
       }
 
       patchAttributes(node, nextNode)
@@ -505,125 +458,8 @@ const patchAttributes = (node: Element, nextNode: Element) => {
   })
 }
 
-const canPatchNode = (node: ChildNode, nextNode: ChildNode): boolean => {
-  if (node.nodeType !== nextNode.nodeType) {
-    return false
-  }
-
-  if (!isElementNode(node)) {
-    return true
-  }
-
-  return isElementNode(nextNode) && node.tagName === nextNode.tagName
-}
-
-const syncRefs = (
-  nodes: Array<ChildNode>,
-  refs: Array<Ref>,
-  dev: ComponentDevState | null,
-) => {
-  refs.forEach(ref => {
-    const node = findRefTarget(nodes, ref.uuid)
-
-    if (!node) {
-      throw createError(ErrorType.MISSING_REF_TARGET, dev)
-    }
-
-    node.removeAttribute('ref')
-    ref.set(node)
-  })
-}
-
-const findRefTarget = (
-  nodes: Array<ChildNode>,
-  uuid: string,
-): HTMLElement | null => {
-  for (const node of nodes) {
-    if (!isElementNode(node)) {
-      continue
-    }
-
-    if (node.getAttribute('ref') === uuid) {
-      if (!isHTMLElement(node)) {
-        return null
-      }
-
-      return node
-    }
-
-    const target = node.querySelector<HTMLElement>(`[ref='${uuid}']`)
-
-    if (target) {
-      return target
-    }
-  }
-
-  return null
-}
-
-const mountComponent = (
-  component: Component,
-  parent: ParentNode,
-  anchor: ChildNode | null = null,
-): Array<ChildNode> => {
-  const start = document.createComment('')
-  const end = document.createComment('')
-  const marker = document.createComment(COMPONENT_CHILD_MARKER)
-
-  if (anchor) {
-    anchor.before(start, marker, end)
-  } else {
-    parent.append(start, marker, end)
-  }
-
-  component.mount(marker)
-
-  const nodes: Array<ChildNode> = []
-  let node = start.nextSibling
-
-  while (node && node !== end) {
-    nodes.push(node)
-    node = node.nextSibling
-  }
-
-  start.remove()
-  end.remove()
-
-  return nodes
-}
-
-const findComponentMarkerIndex = (
-  nodes: Array<ChildNode>,
-  startIndex: number,
-  component: Component,
-): number => {
-  const marker = component[ComponentMarkerSymbol]
-
-  if (marker) {
-    const index = nodes.indexOf(marker)
-
-    return index >= startIndex ? index : -1
-  }
-
-  for (let i = startIndex; i < nodes.length; i += 1) {
-    const node = nodes[i]
-
-    if (!node || !isComponentMarker(node)) {
-      continue
-    }
-
-    return i
-  }
-
-  return -1
-}
-
-const isComponentPlaceholder = (node: Node): node is Comment =>
+const isChildComponentMarker = (node: Node): node is Comment =>
   isCommentNode(node) && node.data === COMPONENT_CHILD_MARKER
-
-const isComponentMarker = (node: Node): node is Comment =>
-  isCommentNode(node) &&
-  (node.data === COMPONENT_MARKER || node.data === COMPONENT_MEMBERS_MARKER)
 
 const isCommentNode = (node: Node): node is Comment =>
   node.nodeType === Node.COMMENT_NODE
@@ -631,26 +467,5 @@ const isCommentNode = (node: Node): node is Comment =>
 const isElementNode = (node: Node): node is Element =>
   node.nodeType === Node.ELEMENT_NODE
 
-const isHTMLElement = (node: Node): node is HTMLElement =>
-  node instanceof HTMLElement
-
 const isTextNode = (node: Node): node is Text =>
   node.nodeType === Node.TEXT_NODE
-
-const getMarkers = (root: Node, text: string): Array<Comment> => {
-  const markers: Array<Comment> = []
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT)
-
-  let node: Node | null
-
-  while ((node = walker.nextNode())) {
-    if (node.textContent !== text) {
-      continue
-    }
-
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    markers.push(node as Comment)
-  }
-
-  return markers
-}
