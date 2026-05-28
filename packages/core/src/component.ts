@@ -1,12 +1,12 @@
 import { logEvent, LogEventType } from './dev'
 import { createError, ErrorType } from './error'
 
-export interface Component {
+export type Component = {
   readonly [ComponentSymbol]: true
   readonly [ComponentMarkerSymbol]?: Comment
   DEV?: ComponentDevState
   readonly destroy: () => void
-  readonly hook: (payload: ComponentUsePayload) => this
+  readonly hook: (payload: ComponentUsePayload) => Component
   readonly mount: (target: ComponentMountTarget) => void
   readonly setConnected: () => void // todo: consider renaming/restructuring this
   readonly setDisconnected: () => void

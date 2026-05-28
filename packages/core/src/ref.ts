@@ -85,7 +85,7 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   }
 }
 
-export interface Ref<E extends HTMLElement = HTMLElement> {
+export type Ref<E extends HTMLElement = HTMLElement> = {
   readonly el: E | null
   readonly off: EventListenerBinder<E>
   readonly on: EventListenerBinder<E>
