@@ -39,7 +39,7 @@ export const html = (
     values,
   }
 
-  let nodes: Array<ChildNode> | null = null
+  let nodes: Array<NodeSnapshot> | null = null
   let content: ComponentContent | null = null
 
   const marker = document.createComment(COMPONENT_MARKER)
@@ -60,7 +60,7 @@ export const html = (
 
     if (nodes) {
       nodes.forEach(node_ => {
-        marker.before(node_)
+        marker.before(node_.node)
       })
     } else {
       render()
@@ -98,7 +98,7 @@ export const html = (
     }
 
     nodes.forEach(node => {
-      node.remove()
+      node.node.remove()
     })
     marker.remove()
   }
@@ -123,15 +123,14 @@ export const html = (
   const render = () => {
     const previousContent = content
     const nextContent = createContent(parts)
+    content = nextContent
 
     // todo: restore isSameContent function for performance?
 
-    content = nextContent
     nodes = patch({
       content,
       dev,
       marker,
-      nextFragment,
       nodes,
       previousContent,
       render,
@@ -236,7 +235,7 @@ type PatchOptions = {
   content: ComponentContent
   dev: ComponentDevState | null
   marker: Comment
-  nodes: Array<ChildNode> | null
+  nodes: Array<NodeSnapshot> | null
   previousContent: ComponentContent | null
   render: () => void
 }
@@ -247,10 +246,12 @@ const patch = ({
   nodes,
   previousContent,
   render,
-}: PatchOptions): Array<ChildNode> => {
+}: PatchOptions): Array<NodeSnapshot> => {
+  const components = [...content.components]
+  const refs = [...content.refs]
+
   if (previousContent) {
     previousContent.reactives.difference(content.reactives).forEach(rx => {
-      // todo: check `rx` is still the right abbreviation
       unsubscribe(rx, render)
     })
 
@@ -275,57 +276,56 @@ const patch = ({
     })
   }
 
-  const nextNodes = [...content.fragment.childNodes]
+  const nextNodes = createNodeSnapshot(...content.fragment.childNodes)
 
   if (!nodes) {
-    // todo: edge case where a component mounts to a top-level node
-
-    walk(nextNodes, content.components, content.refs)
-    marker.before(...nextNodes)
+    walk(nextNodes, components, refs)
+    marker.before(...nextNodes.map(node => node.node))
     return nextNodes
   }
 
   const parent = marker.parentNode!
 
-  // todo: think about removing this if stmt?
-
-  // const currentNodes = nodes.filter(node => node.parentNode === parent)
-
-  walkPatch(nodes, nextNodes, parent, content.components, content.refs)
+  walkPatch(nodes, nextNodes, parent, components, refs)
   return nodes
 }
 
+type NodeSnapshot = {
+  children: Array<NodeSnapshot>
+  node: ChildNode
+}
+
+const createNodeSnapshot = (...nodes: Array<Node>): Array<NodeSnapshot> =>
+  nodes.map(node => ({
+    children: createNodeSnapshot(...node.childNodes),
+    node: node as ChildNode,
+  }))
+
 const walk = (
-  nodes: Array<ChildNode>,
+  nodes: Array<NodeSnapshot>,
   components: Array<Component>,
   refs: Array<Ref>,
 ) => {
-  console.log('walk')
   let index = 0
 
   while (index < nodes.length) {
     const node = nodes[index]!
 
-    if (isChildComponentMarker(node)) {
-      // todo: dev errors if missing
-      components.shift()?.mount(node)
-      nodes.splice(index, 1)
-      // do not increment index
-      // COMPLETE
+    if (isChildComponentMarker(node.node)) {
+      components.shift()?.mount(node.node)
+      index += 1
       continue
     }
 
-    if (isElementNode(node)) {
-      const refAttribute = node.getAttribute('ref')
+    if (isElementNode(node.node)) {
+      const refAttribute = node.node.getAttribute('ref')
 
       if (refAttribute) {
-        node.removeAttribute('ref')
-        // todo: dev errors if missing
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        refs.shift()?.set(node as HTMLElement)
+        node.node.removeAttribute('ref')
+        refs.shift()?.set(node.node as HTMLElement)
       }
 
-      walk([...node.childNodes], components, refs)
+      walk(node.children, components, refs)
     }
 
     index += 1
@@ -333,13 +333,12 @@ const walk = (
 }
 
 const walkPatch = (
-  nodes: Array<ChildNode>,
-  nextNodes: Array<ChildNode>,
+  nodes: Array<NodeSnapshot>,
+  nextNodes: Array<NodeSnapshot>,
   parent: ParentNode,
   components: Array<Component>,
   refs: Array<Ref>,
 ) => {
-  console.log('walkpatch')
   let index = 0
 
   while (index < nodes.length || index < nextNodes.length) {
@@ -348,97 +347,90 @@ const walkPatch = (
 
     if (!nextNode) {
       nodes.splice(index).forEach(removedNode => {
-        removedNode.remove()
+        removedNode.node.remove()
       })
       break
     }
 
-    if (isChildComponentMarker(nextNode)) {
-      components.shift()?.mount(nextNode)
-      nextNodes.splice(index, 1)
-      // do not increment index
-      // COMPLETE
-      continue
-    }
-
     if (!node) {
-      // todo: really think about this one a bit more...
-
       const lastNode = nodes.at(-1)
 
       if (lastNode) {
-        lastNode.after(nextNode)
+        lastNode.node.after(nextNode.node)
       } else {
-        parent.append(nextNode)
+        parent.append(nextNode.node)
       }
 
       nodes.push(nextNode)
 
-      if (isElementNode(nextNode)) {
-        const refAttribute = nextNode.getAttribute('ref')
+      if (isElementNode(nextNode.node)) {
+        const refAttribute = nextNode.node.getAttribute('ref')
 
         if (refAttribute) {
-          nextNode.removeAttribute('ref')
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-          refs.shift()?.set(nextNode as HTMLElement)
+          nextNode.node.removeAttribute('ref')
+          refs.shift()?.set(nextNode.node as HTMLElement)
         }
 
-        walk([...nextNode.childNodes], components, refs)
+        walk(nextNode.children, components, refs)
       }
 
       index += 1
       continue
     }
 
-    if (isTextNode(node) && isTextNode(nextNode)) {
-      if (node.data !== nextNode.data) {
-        node.data = nextNode.data
+    if (isChildComponentMarker(nextNode.node)) {
+      const component = components.shift()
+
+      if (isChildComponentMarker(node.node)) {
+        index += 1
+        continue
       }
-    } else if (isCommentNode(node) && isCommentNode(nextNode)) {
-      if (node.data !== nextNode.data) {
-        node.data = nextNode.data
+
+      component?.mount(nextNode.node)
+      index += 1
+      continue
+    }
+
+    if (isTextNode(node.node) && isTextNode(nextNode.node)) {
+      if (node.node.data !== nextNode.node.data) {
+        node.node.data = nextNode.node.data
+      }
+    } else if (isCommentNode(node.node) && isCommentNode(nextNode.node)) {
+      if (node.node.data !== nextNode.node.data) {
+        node.node.data = nextNode.node.data
       }
     } else if (
-      node.nodeName === nextNode.nodeName &&
-      isElementNode(node) &&
-      isElementNode(nextNode)
+      node.node.nodeName === nextNode.node.nodeName &&
+      isElementNode(node.node) &&
+      isElementNode(nextNode.node)
     ) {
-      if (nextNode.hasAttribute('ref')) {
-        nextNode.removeAttribute('ref')
-        refs.shift()
+      if (nextNode.node.hasAttribute('ref')) {
+        nextNode.node.removeAttribute('ref')
+        refs.shift()?.set(node.node as HTMLElement)
       }
 
-      patchAttributes(node, nextNode)
+      patchAttributes(node.node, nextNode.node)
 
-      walkPatch(
-        [...node.childNodes],
-        [...nextNode.childNodes],
-        node,
-        components,
-        refs,
-      )
+      walkPatch(node.children, nextNode.children, node.node, components, refs)
     } else {
-      node.replaceWith(nextNode)
+      node.node.replaceWith(nextNode.node)
       nodes[index] = nextNode
 
-      if (isElementNode(nextNode)) {
-        const refAttribute = nextNode.getAttribute('ref')
+      if (isElementNode(nextNode.node)) {
+        const refAttribute = nextNode.node.getAttribute('ref')
 
         if (refAttribute) {
-          nextNode.removeAttribute('ref')
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-          refs.shift()?.set(nextNode as HTMLElement)
+          nextNode.node.removeAttribute('ref')
+          refs.shift()?.set(nextNode.node as HTMLElement)
         }
 
-        walk([...nextNode.childNodes], components, refs)
+        walk(nextNode.children, components, refs)
       }
     }
 
     index += 1
   }
 }
-
-// todo: verify consistent use of array index and .at()
 
 const patchAttributes = (node: Element, nextNode: Element) => {
   const nextAttributes = new Map(

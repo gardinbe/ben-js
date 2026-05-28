@@ -21,6 +21,10 @@ export type Reactive<T = unknown> = {
   value: T
 }
 
+export type ReadonlyReactive<T = unknown> = {
+  readonly value: T
+} & Reactive<T>
+
 export const ReactiveSymbol = Symbol('ben-js.reactive')
 
 export const isReactive = (value: unknown): value is Reactive =>

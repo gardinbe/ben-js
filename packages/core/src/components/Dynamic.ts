@@ -33,6 +33,7 @@ export const Dynamic = <T>({
   const isMounted = false
 
   const hooks = {
+    // todo: move this into a common createHooks or something utility
     connected: new Set<ComponentHookFunction>(),
     disconnected: new Set<ComponentHookFunction>(),
   }
@@ -116,6 +117,8 @@ export const Dynamic = <T>({
       .filter(diff.addNew(previous))
       .map(transform)
       .forEach(component => {
+        // todo:
+
         add(component)
       })
   })
@@ -137,6 +140,8 @@ export const Dynamic = <T>({
 
   return c
 }
+
+// todo: rename this to something other than payload
 
 export type DynamicPayload<T> = {
   diff: DynamicPayloadDiff<T>
