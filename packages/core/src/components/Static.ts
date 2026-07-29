@@ -242,7 +242,7 @@ const stringify = (value: unknown): string =>
   // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
   value != null && value !== false ? `${value}` : ''
 
-type PatchOptions = {
+type PatchPayload = {
   content: Content
   dev: ComponentDevState | null
   marker: Comment
@@ -257,7 +257,7 @@ const patch = ({
   nodes,
   previousContent,
   render,
-}: PatchOptions): Array<NodeSnapshot> => {
+}: PatchPayload): Array<NodeSnapshot> => {
   const components = [...content.components]
   const refs = [...content.refs]
 
