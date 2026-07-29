@@ -29,20 +29,17 @@ import {
   logEvent,
   LogEventType,
 } from '../dev'
+import { isStaticValue } from '../normalize'
 import { isRef, type Ref } from '../ref'
-import { isStatic } from '../static'
 
 export const html = (
   strings: TemplateStringsArray,
   ...values: Array<unknown>
 ): Component => {
-  const parts: TemplateParts = {
-    strings,
-    values,
-  }
+  const parts = parseParts(strings, values)
 
   let nodes: Array<NodeSnapshot> | null = null
-  let content: ComponentContent | null = null
+  let content: Content | null = null
 
   const marker = document.createComment(COMPONENT_MARKER)
   let isMounted = false
@@ -169,19 +166,31 @@ export const html = (
   return c
 }
 
-type ComponentContent = {
+type Content = {
   components: Array<Component>
   fragment: DocumentFragment
   reactives: Set<Reactive>
   refs: Array<Ref>
 }
 
-type TemplateParts = {
+type Parts = {
   strings: TemplateStringsArray
   values: Array<unknown>
 }
 
-const createContent = (parts: TemplateParts): ComponentContent => {
+const parseParts = (
+  strings: TemplateStringsArray,
+  values: Array<unknown>,
+): Parts => ({
+  strings,
+  values: values.map(value =>
+    typeof value === 'function' && value.length === 0
+      ? derived(value as DerivedEffect)
+      : value,
+  ),
+})
+
+const createContent = (parts: Parts): Content => {
   const components: Array<Component> = []
   const reactives = new Set<Reactive>()
   const refs: Array<Ref> = []
@@ -196,15 +205,7 @@ const createContent = (parts: TemplateParts): ComponentContent => {
       return parseValue(value.value)
     }
 
-    if (typeof value === 'function' && value.length === 0) {
-      // ben-todo: infinite loop
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const reactive = derived(value as DerivedEffect)
-      reactives.add(reactive)
-      return parseValue(reactive.value)
-    }
-
-    if (isStatic(value)) {
+    if (isStaticValue(value)) {
       return parseValue(value.value)
     }
 
@@ -242,11 +243,11 @@ const stringify = (value: unknown): string =>
   value != null && value !== false ? `${value}` : ''
 
 type PatchOptions = {
-  content: ComponentContent
+  content: Content
   dev: ComponentDevState | null
   marker: Comment
   nodes: Array<NodeSnapshot> | null
-  previousContent: ComponentContent | null
+  previousContent: Content | null
   render: () => void
 }
 

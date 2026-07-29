@@ -94,7 +94,7 @@ export const randomHexColor = () =>
 
 export type ComponentType = Enum<typeof ComponentType>
 export const ComponentType = {
-  DYNAMIC: 'Dynamic',
+  LIST: 'List',
   STATIC: 'Static',
   SWAP: 'Swap',
 } as const

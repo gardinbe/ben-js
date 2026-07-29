@@ -5,7 +5,6 @@ export {
   type ComponentHookFunction,
   isComponent,
 } from './component'
-export { AnonList } from './components/AnonList'
 export { type KeyedComponent, List } from './components/List'
 export { html } from './components/Static'
 export { Suspended } from './components/Suspended'
@@ -19,5 +18,6 @@ export {
   type Ref,
   ref,
 } from './ref'
-export { type NormalizedValues } from './static'
-export { attrs, cn, normalize, type Prop, type Props } from './utils'
+export { type NormalizedValues } from './normalize'
+export { attrs, normalize, type Prop, type Props } from './props'
+export { cn } from './utils'
