@@ -25,18 +25,15 @@ export const List = (
   items: (() => Array<KeyedComponent>) | Reactive<Array<KeyedComponent>>,
 ): Component => {
   const members = typeof items === 'function' ? derived(items) : items
-  const memberComponents = () => members.value.map(({ component }) => component)
+  const components = () => members.value.map(({ component }) => component)
 
   const marker = document.createComment(COMPONENT_MEMBERS_MARKER)
-  const isMounted = false
+  let isMounted = false
 
-  const hooks = {
-    // todo: move this into a common createHooks or something utility
-    connected: new Set<ComponentHookFunction>(),
-    disconnected: new Set<ComponentHookFunction>(),
-  }
+  const connectedHooks = new Set<ComponentHookFunction>()
+  const disconnectedHooks = new Set<ComponentHookFunction>()
 
-  const dev = createComponentDev(ComponentType.LIST, memberComponents)
+  const dev = createComponentDev(ComponentType.LIST, components)
 
   const add = (component: Component) => {
     const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
@@ -48,7 +45,7 @@ export const List = (
     const target = getMountNode(node, dev)
     target.replaceWith(marker)
 
-    memberComponents().forEach(component => {
+    members.value.forEach(({ component }) => {
       add(component)
     })
 
@@ -65,7 +62,8 @@ export const List = (
       return
     }
 
-    connectComponents(memberComponents(), dev, hooks.connected)
+    connectComponents(components(), dev, connectedHooks)
+    isMounted = true
   }
 
   const setDisconnected = () => {
@@ -73,18 +71,19 @@ export const List = (
       return
     }
 
-    disconnectComponents(memberComponents(), dev, hooks.disconnected)
+    disconnectComponents(components(), dev, disconnectedHooks)
+    isMounted = false
   }
 
   const unmount = () => {
-    memberComponents().forEach(component => {
+    members.value.forEach(({ component }) => {
       component.unmount()
     })
     marker.remove()
   }
 
   const destroy = () => {
-    memberComponents().forEach(component => {
+    members.value.forEach(({ component }) => {
       component.destroy()
     })
     marker.remove()
@@ -93,11 +92,11 @@ export const List = (
 
   const hook = (payload: ComponentUsePayload) => {
     if (payload.connected) {
-      hooks.connected.add(payload.connected)
+      connectedHooks.add(payload.connected)
     }
 
     if (payload.disconnected) {
-      hooks.disconnected.add(payload.disconnected)
+      disconnectedHooks.add(payload.disconnected)
     }
 
     return c

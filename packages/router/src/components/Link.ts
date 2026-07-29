@@ -8,14 +8,14 @@ import {
   ref,
 } from '@ben-js/core'
 
-import { go } from '../route'
+import { currentPath, go } from '../route'
 
 export const Link = (
   props: Props<HTMLAnchorAttributes>,
   slot: unknown,
 ): Component => {
   const { href } = normalize(props)
-  const a = ref()
+  const a = ref<HTMLAnchorElement>()
 
   a.on('click', ev => {
     ev.preventDefault()
@@ -25,6 +25,9 @@ export const Link = (
   return html`<a
     ref="${a}"
     ${attrs(props)}
+    ${() =>
+      currentPath.value === new URL(href.value, document.baseURI).pathname &&
+      'data-route-active'}
     >${slot}</a
-  > `
+  >`
 }

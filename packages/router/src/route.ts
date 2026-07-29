@@ -81,8 +81,7 @@ export const resolve = (path: string): ResolvedRoute | null => {
   return walk(currentRoutes.value)
 }
 
-const currentPath = reactive(location.pathname)
-
+export const currentPath = reactive(location.pathname)
 export const currentRoute = derived(() => resolve(currentPath.value))
 
 addEventListener('popstate', () => {

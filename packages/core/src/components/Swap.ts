@@ -24,18 +24,16 @@ import {
 export const Swap = (
   item: (() => Component | null) | Reactive<Component | null>,
 ): Component => {
-  const memberComponent = typeof item === 'function' ? derived(item) : item
+  const member = typeof item === 'function' ? derived(item) : item
 
   const marker = document.createComment(COMPONENT_MEMBERS_MARKER)
-  const isMounted = false
+  let isMounted = false
 
-  const hooks = {
-    connected: new Set<ComponentHookFunction>(),
-    disconnected: new Set<ComponentHookFunction>(),
-  }
+  const connectedHooks = new Set<ComponentHookFunction>()
+  const disconnectedHooks = new Set<ComponentHookFunction>()
 
   const dev = createComponentDev(ComponentType.SWAP, () =>
-    getMemberComponents(memberComponent.value),
+    getMemberComponents(member.value),
   )
 
   const add = (component: Component) => {
@@ -48,8 +46,8 @@ export const Swap = (
     const target = getMountNode(node, dev)
     target.replaceWith(marker)
 
-    if (memberComponent.value) {
-      add(memberComponent.value)
+    if (member.value) {
+      add(member.value)
     }
 
     if (!isInDocument(marker)) {
@@ -65,11 +63,8 @@ export const Swap = (
       return
     }
 
-    connectComponents(
-      getMemberComponents(memberComponent.value),
-      dev,
-      hooks.connected,
-    )
+    connectComponents(getMemberComponents(member.value), dev, connectedHooks)
+    isMounted = true
   }
 
   const setDisconnected = () => {
@@ -78,36 +73,37 @@ export const Swap = (
     }
 
     disconnectComponents(
-      getMemberComponents(memberComponent.value),
+      getMemberComponents(member.value),
       dev,
-      hooks.disconnected,
+      disconnectedHooks,
     )
+    isMounted = false
   }
 
   const unmount = () => {
-    memberComponent.value?.unmount()
+    member.value?.unmount()
     marker.remove()
   }
 
   const destroy = () => {
-    memberComponent.value?.destroy()
+    member.value?.destroy()
     marker.remove()
     logEvent(LogEventType.DESTROYED, dev)
   }
 
   const hook = (payload: ComponentUsePayload) => {
     if (payload.connected) {
-      hooks.connected.add(payload.connected)
+      connectedHooks.add(payload.connected)
     }
 
     if (payload.disconnected) {
-      hooks.disconnected.add(payload.disconnected)
+      disconnectedHooks.add(payload.disconnected)
     }
 
     return c
   }
 
-  watch(memberComponent, (next, previous) => {
+  watch(member, (next, previous) => {
     if (!next || next === previous) {
       return
     }

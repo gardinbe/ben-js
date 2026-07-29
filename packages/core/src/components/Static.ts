@@ -11,7 +11,6 @@ import {
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
-  type ComponentDevState,
   type ComponentHookFunction,
   ComponentMarkerSymbol,
   type ComponentMountTarget,
@@ -36,7 +35,7 @@ export const html = (
   strings: TemplateStringsArray,
   ...values: Array<unknown>
 ): Component => {
-  const parts = parseParts(strings, values)
+  const parts = createParts(strings, values)
 
   let nodes: Array<NodeSnapshot> | null = null
   let content: Content | null = null
@@ -44,10 +43,8 @@ export const html = (
   const marker = document.createComment(COMPONENT_MARKER)
   let isMounted = false
 
-  const hooks = {
-    connected: new Set<ComponentHookFunction>(),
-    disconnected: new Set<ComponentHookFunction>(),
-  }
+  const connectedHooks = new Set<ComponentHookFunction>()
+  const disconnectedHooks = new Set<ComponentHookFunction>()
 
   const dev = createComponentDev(ComponentType.STATIC, () => [
     ...(content?.components ?? []),
@@ -78,7 +75,7 @@ export const html = (
       return
     }
 
-    connectComponents(content?.components, dev, hooks.connected)
+    connectComponents(content?.components, dev, connectedHooks)
     isMounted = true
   }
 
@@ -87,7 +84,7 @@ export const html = (
       return
     }
 
-    disconnectComponents(content?.components, dev, hooks.disconnected)
+    disconnectComponents(content?.components, dev, disconnectedHooks)
     isMounted = false
   }
 
@@ -126,23 +123,16 @@ export const html = (
 
     // todo: restore isSameContent function for performance?
 
-    nodes = patch({
-      content,
-      dev,
-      marker,
-      nodes,
-      previousContent,
-      render,
-    })
+    nodes = patch(content, marker, nodes, previousContent, render)
   }
 
   const hook = (payload: ComponentUsePayload) => {
     if (payload.connected) {
-      hooks.connected.add(payload.connected)
+      connectedHooks.add(payload.connected)
     }
 
     if (payload.disconnected) {
-      hooks.disconnected.add(payload.disconnected)
+      disconnectedHooks.add(payload.disconnected)
     }
 
     return c
@@ -178,7 +168,7 @@ type Parts = {
   values: Array<unknown>
 }
 
-const parseParts = (
+const createParts = (
   strings: TemplateStringsArray,
   values: Array<unknown>,
 ): Parts => ({
@@ -242,24 +232,19 @@ const stringify = (value: unknown): string =>
   // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
   value != null && value !== false ? `${value}` : ''
 
-type PatchPayload = {
-  content: Content
-  dev: ComponentDevState | null
-  marker: Comment
-  nodes: Array<NodeSnapshot> | null
-  previousContent: Content | null
-  render: () => void
-}
-
-const patch = ({
-  content,
-  marker,
-  nodes,
-  previousContent,
-  render,
-}: PatchPayload): Array<NodeSnapshot> => {
-  const components = [...content.components]
-  const refs = [...content.refs]
+const patch = (
+  content: Content,
+  marker: Comment,
+  nodes: Array<NodeSnapshot> | null,
+  previousContent: Content | null,
+  render: () => void,
+): Array<NodeSnapshot> => {
+  const state: WalkState = {
+    componentIndex: 0,
+    components: content.components,
+    refIndex: 0,
+    refs: content.refs,
+  }
 
   if (previousContent) {
     previousContent.reactives.difference(content.reactives).forEach(rx => {
@@ -290,14 +275,14 @@ const patch = ({
   const nextNodes = createNodeSnapshot(...content.fragment.childNodes)
 
   if (!nodes) {
-    mountNodes(nextNodes, components, refs)
+    mountNodes(nextNodes, state)
     marker.before(...nextNodes.map(node => node.node))
     return nextNodes
   }
 
   const parent = marker.parentNode!
 
-  patchNodes(nodes, nextNodes, parent, components, refs)
+  patchNodes(nodes, nextNodes, parent, state)
   return nodes
 }
 
@@ -306,37 +291,48 @@ type NodeSnapshot = {
   node: ChildNode
 }
 
+type WalkState = {
+  componentIndex: number
+  components: Array<Component>
+  refIndex: number
+  refs: Array<Ref>
+}
+
 const createNodeSnapshot = (...nodes: Array<Node>): Array<NodeSnapshot> =>
   nodes.map(node => ({
     children: createNodeSnapshot(...node.childNodes),
     node: node as ChildNode,
   }))
 
-const mountNodes = (
-  nodes: Array<NodeSnapshot>,
-  components: Array<Component>,
-  refs: Array<Ref>,
-) => {
+const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
   for (let i = 0; i < nodes.length; i += 1) {
     const snapshot = nodes[i]!
     const node = snapshot.node
+    const nodeType = node.nodeType
 
-    if (isChildComponentMarker(node)) {
-      components.shift()?.mount(node)
+    if (
+      nodeType === Node.COMMENT_NODE &&
+      (node as Comment).data === COMPONENT_CHILD_MARKER
+    ) {
+      state.components[state.componentIndex++]?.mount(node)
       continue
     }
 
-    if (!isElementNode(node)) {
+    if (nodeType !== Node.ELEMENT_NODE) {
       continue
     }
 
-    const refAttribute = node.getAttribute('ref')
+    const element = node as Element
+    const refAttribute = element.getAttribute('ref')
+
     if (refAttribute) {
-      node.removeAttribute('ref')
-      refs.shift()?.set(node as HTMLElement)
+      element.removeAttribute('ref')
+      state.refs[state.refIndex++]?.set(element as HTMLElement)
     }
 
-    mountNodes(snapshot.children, components, refs)
+    if (snapshot.children.length) {
+      mountNodes(snapshot.children, state)
+    }
   }
 }
 
@@ -344,8 +340,7 @@ const patchNodes = (
   nodes: Array<NodeSnapshot>,
   nextNodes: Array<NodeSnapshot>,
   parent: ParentNode,
-  components: Array<Component>,
-  refs: Array<Ref>,
+  state: WalkState,
 ) => {
   for (
     let index = 0;
@@ -356,13 +351,16 @@ const patchNodes = (
     const nextSnapshot = nextNodes[index]
 
     if (!nextSnapshot) {
-      nodes.splice(index).forEach(removedNode => {
-        removedNode.node.remove()
-      })
+      for (let i = index; i < nodes.length; i += 1) {
+        nodes[i]!.node.remove()
+      }
+
+      nodes.length = index
       break
     }
 
     const nextNode = nextSnapshot.node
+    const nextNodeType = nextNode.nodeType
 
     if (!snapshot) {
       const lastSnapshot = nodes[nodes.length - 1]
@@ -374,79 +372,80 @@ const patchNodes = (
       }
 
       nodes.push(nextSnapshot)
+    } else {
+      const node = snapshot.node
 
-      if (isElementNode(nextNode)) {
-        const refAttribute = nextNode.getAttribute('ref')
+      if (
+        nextNodeType === Node.COMMENT_NODE &&
+        (nextNode as Comment).data === COMPONENT_CHILD_MARKER
+      ) {
+        const component = state.components[state.componentIndex++]
 
-        if (refAttribute) {
-          nextNode.removeAttribute('ref')
-          refs.shift()?.set(nextNode as HTMLElement)
+        if (
+          node.nodeType === Node.COMMENT_NODE &&
+          (node as Comment).data === COMPONENT_CHILD_MARKER
+        ) {
+          continue
         }
 
-        mountNodes(nextSnapshot.children, components, refs)
-      }
-
-      continue
-    }
-
-    const node = snapshot.node
-
-    if (isChildComponentMarker(nextNode)) {
-      const component = components.shift()
-
-      if (isChildComponentMarker(node)) {
+        component?.mount(nextNode)
         continue
       }
 
-      component?.mount(nextNode)
+      const nodeType = node.nodeType
+
+      if (nodeType === nextNodeType) {
+        if (nodeType === Node.TEXT_NODE || nodeType === Node.COMMENT_NODE) {
+          const dataNode = node as Comment | Text
+          const nextData = (nextNode as Comment | Text).data
+
+          if (dataNode.data !== nextData) {
+            dataNode.data = nextData
+          }
+
+          continue
+        }
+
+        if (
+          nodeType === Node.ELEMENT_NODE &&
+          node.nodeName === nextNode.nodeName
+        ) {
+          const element = node as Element
+          const nextElement = nextNode as Element
+
+          if (nextElement.hasAttribute('ref')) {
+            nextElement.removeAttribute('ref')
+            state.refs[state.refIndex++]?.set(element as HTMLElement)
+          }
+
+          patchAttributes(element, nextElement)
+
+          if (snapshot.children.length || nextSnapshot.children.length) {
+            patchNodes(snapshot.children, nextSnapshot.children, element, state)
+          }
+
+          continue
+        }
+      }
+
+      node.replaceWith(nextNode)
+      nodes[index] = nextSnapshot
+    }
+
+    if (nextNodeType !== Node.ELEMENT_NODE) {
       continue
     }
 
-    if (
-      (isTextNode(node) && isTextNode(nextNode)) ||
-      (isCommentNode(node) && isCommentNode(nextNode))
-    ) {
-      if (node.data !== nextNode.data) {
-        node.data = nextNode.data
-      }
+    const nextElement = nextNode as Element
+    const refAttribute = nextElement.getAttribute('ref')
 
-      continue
+    if (refAttribute) {
+      nextElement.removeAttribute('ref')
+      state.refs[state.refIndex++]?.set(nextElement as HTMLElement)
     }
 
-    if (
-      node.nodeName === nextNode.nodeName &&
-      isElementNode(node) &&
-      isElementNode(nextNode)
-    ) {
-      if (nextNode.hasAttribute('ref')) {
-        nextNode.removeAttribute('ref')
-        refs.shift()?.set(node as HTMLElement)
-      }
-
-      patchAttributes(node, nextNode)
-
-      patchNodes(
-        snapshot.children,
-        nextSnapshot.children,
-        node,
-        components,
-        refs,
-      )
-      continue
-    }
-
-    node.replaceWith(nextNode)
-    nodes[index] = nextSnapshot
-
-    if (isElementNode(nextNode)) {
-      const refAttribute = nextNode.getAttribute('ref')
-
-      if (refAttribute) {
-        nextNode.removeAttribute('ref')
-        refs.shift()?.set(nextNode as HTMLElement)
-      }
-
-      mountNodes(nextSnapshot.children, components, refs)
+    if (nextSnapshot.children.length) {
+      mountNodes(nextSnapshot.children, state)
     }
   }
 }
@@ -472,15 +471,3 @@ const patchAttributes = (node: Element, nextNode: Element) => {
     node.setAttribute(name, value)
   })
 }
-
-const isChildComponentMarker = (node: Node): node is Comment =>
-  isCommentNode(node) && node.data === COMPONENT_CHILD_MARKER
-
-const isCommentNode = (node: Node): node is Comment =>
-  node.nodeType === Node.COMMENT_NODE
-
-const isElementNode = (node: Node): node is Element =>
-  node.nodeType === Node.ELEMENT_NODE
-
-const isTextNode = (node: Node): node is Text =>
-  node.nodeType === Node.TEXT_NODE

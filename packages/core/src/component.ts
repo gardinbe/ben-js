@@ -27,8 +27,8 @@ export type ComponentDevState = {
 }
 
 export type ComponentHook = (fn: ComponentHookFunction) => void
-
 export type ComponentHookFunction = () => void
+
 export type ComponentMountTarget = string | Node
 
 export type ComponentUsePayload = {

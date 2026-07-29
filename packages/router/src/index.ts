@@ -3,6 +3,7 @@ export { Route, Router } from './components/Router'
 export { define, type ExportedRouteComponent } from './define'
 export {
   back,
+  currentPath,
   currentRoute,
   currentRoutes,
   go,
