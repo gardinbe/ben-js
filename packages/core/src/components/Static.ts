@@ -1,4 +1,6 @@
 import {
+  derived,
+  type DerivedEffect,
   isReactive,
   type Reactive,
   subscribe,
@@ -192,6 +194,14 @@ const createContent = (parts: TemplateParts): ComponentContent => {
     if (isReactive(value)) {
       reactives.add(value)
       return parseValue(value.value)
+    }
+
+    if (typeof value === 'function' && value.length === 0) {
+      // ben-todo: infinite loop
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+      const reactive = derived(value as DerivedEffect)
+      reactives.add(reactive)
+      return parseValue(reactive.value)
     }
 
     if (isStatic(value)) {

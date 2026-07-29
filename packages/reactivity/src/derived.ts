@@ -10,4 +10,4 @@ export const derived = <T>(effect: DerivedEffect<T>): ReadonlyReactive<T> => {
   return rx
 }
 
-export type DerivedEffect<T> = () => T
+export type DerivedEffect<T = unknown> = () => T
