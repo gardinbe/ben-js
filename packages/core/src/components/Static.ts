@@ -290,14 +290,14 @@ const patch = ({
   const nextNodes = createNodeSnapshot(...content.fragment.childNodes)
 
   if (!nodes) {
-    walk(nextNodes, components, refs)
+    mountNodes(nextNodes, components, refs)
     marker.before(...nextNodes.map(node => node.node))
     return nextNodes
   }
 
   const parent = marker.parentNode!
 
-  walkPatch(nodes, nextNodes, parent, components, refs)
+  patchNodes(nodes, nextNodes, parent, components, refs)
   return nodes
 }
 
@@ -312,134 +312,142 @@ const createNodeSnapshot = (...nodes: Array<Node>): Array<NodeSnapshot> =>
     node: node as ChildNode,
   }))
 
-const walk = (
+const mountNodes = (
   nodes: Array<NodeSnapshot>,
   components: Array<Component>,
   refs: Array<Ref>,
 ) => {
-  let index = 0
+  for (let i = 0; i < nodes.length; i += 1) {
+    const snapshot = nodes[i]!
+    const node = snapshot.node
 
-  while (index < nodes.length) {
-    const node = nodes[index]!
-
-    if (isChildComponentMarker(node.node)) {
-      components.shift()?.mount(node.node)
-      index += 1
+    if (isChildComponentMarker(node)) {
+      components.shift()?.mount(node)
       continue
     }
 
-    if (isElementNode(node.node)) {
-      const refAttribute = node.node.getAttribute('ref')
-
-      if (refAttribute) {
-        node.node.removeAttribute('ref')
-        refs.shift()?.set(node.node as HTMLElement)
-      }
-
-      walk(node.children, components, refs)
+    if (!isElementNode(node)) {
+      continue
     }
 
-    index += 1
+    const refAttribute = node.getAttribute('ref')
+    if (refAttribute) {
+      node.removeAttribute('ref')
+      refs.shift()?.set(node as HTMLElement)
+    }
+
+    mountNodes(snapshot.children, components, refs)
   }
 }
 
-const walkPatch = (
+const patchNodes = (
   nodes: Array<NodeSnapshot>,
   nextNodes: Array<NodeSnapshot>,
   parent: ParentNode,
   components: Array<Component>,
   refs: Array<Ref>,
 ) => {
-  let index = 0
+  for (
+    let index = 0;
+    index < nodes.length || index < nextNodes.length;
+    index += 1
+  ) {
+    const snapshot = nodes[index]
+    const nextSnapshot = nextNodes[index]
 
-  while (index < nodes.length || index < nextNodes.length) {
-    const node = nodes[index]
-    const nextNode = nextNodes[index]
-
-    if (!nextNode) {
+    if (!nextSnapshot) {
       nodes.splice(index).forEach(removedNode => {
         removedNode.node.remove()
       })
       break
     }
 
-    if (!node) {
-      const lastNode = nodes.at(-1)
+    const nextNode = nextSnapshot.node
 
-      if (lastNode) {
-        lastNode.node.after(nextNode.node)
+    if (!snapshot) {
+      const lastSnapshot = nodes[nodes.length - 1]
+
+      if (lastSnapshot) {
+        lastSnapshot.node.after(nextNode)
       } else {
-        parent.append(nextNode.node)
+        parent.append(nextNode)
       }
 
-      nodes.push(nextNode)
+      nodes.push(nextSnapshot)
 
-      if (isElementNode(nextNode.node)) {
-        const refAttribute = nextNode.node.getAttribute('ref')
+      if (isElementNode(nextNode)) {
+        const refAttribute = nextNode.getAttribute('ref')
 
         if (refAttribute) {
-          nextNode.node.removeAttribute('ref')
-          refs.shift()?.set(nextNode.node as HTMLElement)
+          nextNode.removeAttribute('ref')
+          refs.shift()?.set(nextNode as HTMLElement)
         }
 
-        walk(nextNode.children, components, refs)
+        mountNodes(nextSnapshot.children, components, refs)
       }
 
-      index += 1
       continue
     }
 
-    if (isChildComponentMarker(nextNode.node)) {
+    const node = snapshot.node
+
+    if (isChildComponentMarker(nextNode)) {
       const component = components.shift()
 
-      if (isChildComponentMarker(node.node)) {
-        index += 1
+      if (isChildComponentMarker(node)) {
         continue
       }
 
-      component?.mount(nextNode.node)
-      index += 1
+      component?.mount(nextNode)
       continue
     }
 
-    if (isTextNode(node.node) && isTextNode(nextNode.node)) {
-      if (node.node.data !== nextNode.node.data) {
-        node.node.data = nextNode.node.data
-      }
-    } else if (isCommentNode(node.node) && isCommentNode(nextNode.node)) {
-      if (node.node.data !== nextNode.node.data) {
-        node.node.data = nextNode.node.data
-      }
-    } else if (
-      node.node.nodeName === nextNode.node.nodeName &&
-      isElementNode(node.node) &&
-      isElementNode(nextNode.node)
+    if (
+      (isTextNode(node) && isTextNode(nextNode)) ||
+      (isCommentNode(node) && isCommentNode(nextNode))
     ) {
-      if (nextNode.node.hasAttribute('ref')) {
-        nextNode.node.removeAttribute('ref')
-        refs.shift()?.set(node.node as HTMLElement)
+      if (node.data !== nextNode.data) {
+        node.data = nextNode.data
       }
 
-      patchAttributes(node.node, nextNode.node)
-
-      walkPatch(node.children, nextNode.children, node.node, components, refs)
-    } else {
-      node.node.replaceWith(nextNode.node)
-      nodes[index] = nextNode
-
-      if (isElementNode(nextNode.node)) {
-        const refAttribute = nextNode.node.getAttribute('ref')
-
-        if (refAttribute) {
-          nextNode.node.removeAttribute('ref')
-          refs.shift()?.set(nextNode.node as HTMLElement)
-        }
-
-        walk(nextNode.children, components, refs)
-      }
+      continue
     }
 
-    index += 1
+    if (
+      node.nodeName === nextNode.nodeName &&
+      isElementNode(node) &&
+      isElementNode(nextNode)
+    ) {
+      if (nextNode.hasAttribute('ref')) {
+        nextNode.removeAttribute('ref')
+        refs.shift()?.set(node as HTMLElement)
+      }
+
+      patchAttributes(node, nextNode)
+
+      patchNodes(
+        snapshot.children,
+        nextSnapshot.children,
+        node,
+        components,
+        refs,
+      )
+      continue
+    }
+
+    node.replaceWith(nextNode)
+    nodes[index] = nextSnapshot
+
+    if (isElementNode(nextNode)) {
+      const refAttribute = nextNode.getAttribute('ref')
+
+      if (refAttribute) {
+        nextNode.removeAttribute('ref')
+        refs.shift()?.set(nextNode as HTMLElement)
+      }
+
+      mountNodes(nextSnapshot.children, components, refs)
+    }
   }
 }
 
