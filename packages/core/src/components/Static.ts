@@ -43,7 +43,7 @@ export const html = (
     destroy: () => {
       content?.reactives.forEach(rx => unsubscribe(rx, render))
       content?.refs.forEach(ref => ref.set(null))
-      content?.components.forEach(component => component.destroy())
+      components()?.forEach(component => component.destroy())
       content = null
       self.unmount()
       nodes = null

@@ -34,14 +34,14 @@ export const List = (
     getChildren: components,
     marker,
     destroy: () => {
-      members.value.forEach(({ component }) => component.destroy())
+      components().forEach(component => component.destroy())
       marker.remove()
     },
     mount: () => {
-      members.value.forEach(({ component }) => mountMember(component))
+      components().forEach(component => mountMember(component))
     },
     unmount: () => {
-      members.value.forEach(({ component }) => component.unmount())
+      components().forEach(component => component.unmount())
       marker.remove()
     },
   })
