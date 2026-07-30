@@ -1,6 +1,6 @@
 import { derived, isReactive, type Reactive } from '@ben-js/reactivity'
 
-import { isStaticValue } from './static-value'
+import { isStaticValue } from './props'
 
 export const cn = (...classes: Array<unknown>): string | Reactive<string> => {
   const create = () =>

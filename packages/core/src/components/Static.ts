@@ -15,8 +15,8 @@ import {
   createComponent,
   isComponent,
 } from '../primitives/component'
+import { isStaticValue } from '../primitives/props'
 import { isRef, type Ref } from '../primitives/ref'
-import { isStaticValue } from '../primitives/static-value'
 
 export const html = (
   strings: TemplateStringsArray,

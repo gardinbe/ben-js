@@ -39,15 +39,6 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
-  packages/ben-js:
-    dependencies:
-      '@ben-js/core':
-        specifier: workspace:*
-        version: link:../core
-      '@ben-js/reactivity':
-        specifier: workspace:*
-        version: link:../reactivity
-
   packages/common: {}
 
   packages/core:
