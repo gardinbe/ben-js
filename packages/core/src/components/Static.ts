@@ -11,24 +11,10 @@ import {
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
-  type ComponentHookFunction,
-  ComponentMarkerSymbol,
-  type ComponentMountTarget,
-  ComponentSymbol,
-  type ComponentUsePayload,
-  getMountNode,
+  createComponent,
   isComponent,
-  isInDocument,
-  runHooks,
-  setChildComponentsConnected,
-  setChildComponentsDisconnected,
 } from '../component'
-import {
-  ComponentKind,
-  ComponentLifecycleEvent,
-  recordComponentEvent,
-  registerComponent,
-} from '../development'
+import { ComponentKind, registerComponent } from '../development'
 import { isStaticValue } from '../normalize'
 import { isRef, type Ref } from '../ref'
 
@@ -41,82 +27,8 @@ export const html = (
   let nodes: Array<NodeSnapshot> | null = null
   let content: Content | null = null
 
+  const components = () => content?.components
   const marker = document.createComment(COMPONENT_MARKER)
-  let isMounted = false
-
-  const connectedHooks = new Set<ComponentHookFunction>()
-  const disconnectedHooks = new Set<ComponentHookFunction>()
-
-  const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node)
-    target.replaceWith(marker)
-
-    if (nodes) {
-      nodes.forEach(node_ => marker.before(node_.node))
-    } else {
-      render()
-    }
-
-    if (!isInDocument(marker)) {
-      setDisconnected()
-      return
-    }
-
-    setConnected()
-  }
-
-  const setConnected = () => {
-    if (isMounted) {
-      return
-    }
-
-    setChildComponentsConnected(content?.components)
-
-    if (__DEV__) {
-      recordComponentEvent(c, ComponentLifecycleEvent.CONNECTED)
-    }
-
-    runHooks(connectedHooks)
-    isMounted = true
-  }
-
-  const setDisconnected = () => {
-    if (!isMounted) {
-      return
-    }
-
-    setChildComponentsDisconnected(content?.components)
-
-    if (__DEV__) {
-      recordComponentEvent(c, ComponentLifecycleEvent.DISCONNECTED)
-    }
-
-    runHooks(disconnectedHooks)
-    isMounted = false
-  }
-
-  const unmount = () => {
-    if (!nodes) {
-      return
-    }
-
-    nodes.forEach(({ node }) => node.remove())
-    marker.remove()
-  }
-
-  const destroy = () => {
-    content?.reactives.forEach(rx => unsubscribe(rx, render))
-    content?.refs.forEach(ref => ref.set(null))
-    content?.components.forEach(component => component.destroy())
-    content = null
-    unmount()
-    setDisconnected()
-    nodes = null
-
-    if (__DEV__) {
-      recordComponentEvent(c, ComponentLifecycleEvent.DESTROYED)
-    }
-  }
 
   const render = () => {
     const previousContent = content
@@ -128,36 +40,42 @@ export const html = (
     nodes = patch(content, marker, nodes, previousContent, render)
   }
 
-  const hook = (payload: ComponentUsePayload) => {
-    if (payload.connected) {
-      connectedHooks.add(payload.connected)
-    }
+  const self = createComponent({
+    getChildren: components,
+    marker,
+    destroy: ({ setDisconnected }: Pick<Component, 'setDisconnected'>) => {
+      content?.reactives.forEach(rx => unsubscribe(rx, render))
+      content?.refs.forEach(ref => ref.set(null))
+      content?.components.forEach(component => component.destroy())
+      content = null
+      self.unmount()
+      setDisconnected()
+      nodes = null
+    },
+    mount: () => {
+      if (nodes) {
+        nodes.forEach(node_ => marker.before(node_.node))
+      } else {
+        render()
+      }
+    },
+    unmount: () => {
+      if (!nodes) {
+        return
+      }
 
-    if (payload.disconnected) {
-      disconnectedHooks.add(payload.disconnected)
-    }
-
-    return c
-  }
-
-  const c: Component = {
-    [ComponentMarkerSymbol]: marker,
-    [ComponentSymbol]: true,
-    destroy,
-    hook,
-    mount,
-    setConnected,
-    setDisconnected,
-    unmount,
-  }
+      nodes.forEach(({ node }) => node.remove())
+      marker.remove()
+    },
+  })
 
   if (__DEV__) {
-    registerComponent(c, ComponentKind.STATIC, () => [
-      ...(content?.components ?? []),
+    registerComponent(self, ComponentKind.STATIC, () => [
+      ...(components() ?? []),
     ])
   }
 
-  return c
+  return self
 }
 
 type Content = {
@@ -178,8 +96,9 @@ const createParts = (
 ): Parts => ({
   strings,
   values: values.map(value =>
-    typeof value === 'function' && !value.length
-      ? derived(value as DerivedEffect)
+    typeof value === 'function' && value.length === 0
+      ? // oxlint-disable-next-line typescript/no-unsafe-type-assertion
+        derived(value as DerivedEffect)
       : value,
   ),
 })
@@ -299,6 +218,7 @@ type WalkState = {
 const createNodeSnapshot = (...nodes: Array<Node>): Array<NodeSnapshot> =>
   nodes.map(node => ({
     children: createNodeSnapshot(...node.childNodes),
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     node: node as ChildNode,
   }))
 
@@ -310,6 +230,7 @@ const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
 
     if (
       nodeType === Node.COMMENT_NODE &&
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       (node as Comment).data === COMPONENT_CHILD_MARKER
     ) {
       state.components.at(state.componentIndex++)?.mount(node)
@@ -320,15 +241,17 @@ const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
       continue
     }
 
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const element = node as Element
     const refAttribute = element.getAttribute('ref')
 
     if (refAttribute) {
       element.removeAttribute('ref')
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       state.refs.at(state.refIndex++)?.set(element as HTMLElement)
     }
 
-    if (snapshot.children.length) {
+    if (snapshot.children.length > 0) {
       mountNodes(snapshot.children, state)
     }
   }
@@ -369,12 +292,14 @@ const patchNodes = (
 
       if (
         nextNodeType === Node.COMMENT_NODE &&
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         (nextNode as Comment).data === COMPONENT_CHILD_MARKER
       ) {
         const component = state.components.at(state.componentIndex++)
 
         if (
           node.nodeType === Node.COMMENT_NODE &&
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           (node as Comment).data === COMPONENT_CHILD_MARKER
         ) {
           continue
@@ -388,7 +313,9 @@ const patchNodes = (
 
       if (nodeType === nextNodeType) {
         if (nodeType === Node.TEXT_NODE || nodeType === Node.COMMENT_NODE) {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const dataNode = node as Comment | Text
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const nextData = (nextNode as Comment | Text).data
 
           if (dataNode.data !== nextData) {
@@ -402,17 +329,23 @@ const patchNodes = (
           nodeType === Node.ELEMENT_NODE &&
           node.nodeName === nextNode.nodeName
         ) {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const element = node as Element
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const nextElement = nextNode as Element
 
           if (nextElement.hasAttribute('ref')) {
             nextElement.removeAttribute('ref')
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion
             state.refs.at(state.refIndex++)?.set(element as HTMLElement)
           }
 
           patchAttributes(element, nextElement)
 
-          if (snapshot.children.length || nextSnapshot.children.length) {
+          if (
+            snapshot.children.length > 0 ||
+            nextSnapshot.children.length > 0
+          ) {
             patchNodes(snapshot.children, nextSnapshot.children, element, state)
           }
 
@@ -428,15 +361,17 @@ const patchNodes = (
       continue
     }
 
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     const nextElement = nextNode as Element
     const refAttribute = nextElement.getAttribute('ref')
 
     if (refAttribute) {
       nextElement.removeAttribute('ref')
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       state.refs.at(state.refIndex++)?.set(nextElement as HTMLElement)
     }
 
-    if (nextSnapshot.children.length) {
+    if (nextSnapshot.children.length > 0) {
       mountNodes(nextSnapshot.children, state)
     }
   }

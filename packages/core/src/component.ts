@@ -1,8 +1,8 @@
+import { ComponentLifecycleEvent, recordComponentEvent } from './development'
 import { createError, ErrorType } from './error'
 
 export type Component = {
   readonly [ComponentSymbol]: true
-  readonly [ComponentMarkerSymbol]?: Comment
   readonly destroy: () => void
   readonly hook: (payload: ComponentUsePayload) => Component
   readonly mount: (target: ComponentMountTarget) => void
@@ -12,7 +12,6 @@ export type Component = {
 }
 
 export const ComponentSymbol = Symbol('ben-js.component')
-export const ComponentMarkerSymbol = Symbol('ben-js.component.marker')
 
 export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && ComponentSymbol in value
@@ -27,20 +26,126 @@ export type ComponentUsePayload = {
   disconnected: ComponentHookFunction
 }
 
-export const setChildComponentsConnected = (
-  components: Array<Component> | undefined,
-) => {
-  components?.forEach(component => component.setConnected())
+type ComponentLifecycle = {
+  readonly hook: (payload: ComponentUsePayload) => Component
+  readonly setConnected: () => void
+  readonly setDisconnected: () => void
 }
 
-export const setChildComponentsDisconnected = (
-  components: Array<Component> | undefined,
-) => {
-  components?.forEach(component => component.setDisconnected())
+type CreateComponentOptions = {
+  readonly marker: Comment
+  readonly destroy: (lifecycle: ComponentLifecycle) => void
+  readonly getChildren: () => Array<Component> | undefined
+  readonly mount: () => void
+  readonly unmount: () => void
 }
 
-export const runHooks = (hooks: Set<ComponentHookFunction>) => {
-  hooks.forEach(fn => fn())
+export const createComponent = ({
+  destroy: destroyComponent,
+  getChildren,
+  marker,
+  mount: mountComponent,
+  unmount,
+}: CreateComponentOptions): Component => {
+  let isMounted = false
+
+  const connectedHooks = new Set<ComponentHookFunction>()
+  const disconnectedHooks = new Set<ComponentHookFunction>()
+
+  const hook = (payload: ComponentUsePayload) => {
+    if (payload.connected) {
+      connectedHooks.add(payload.connected)
+    }
+
+    if (payload.disconnected) {
+      disconnectedHooks.add(payload.disconnected)
+    }
+
+    return self
+  }
+
+  const setConnected = () => {
+    if (isMounted) {
+      return
+    }
+
+    getChildren()?.forEach(component => component.setConnected())
+
+    if (__DEV__) {
+      recordComponentEvent(self, ComponentLifecycleEvent.CONNECTED)
+    }
+
+    connectedHooks.forEach(fn => fn())
+    isMounted = true
+  }
+
+  const setDisconnected = () => {
+    if (!isMounted) {
+      return
+    }
+
+    getChildren()?.forEach(component => component.setDisconnected())
+
+    if (__DEV__) {
+      recordComponentEvent(self, ComponentLifecycleEvent.DISCONNECTED)
+    }
+
+    disconnectedHooks.forEach(fn => fn())
+    isMounted = false
+  }
+
+  const mount = (node: ComponentMountTarget) => {
+    const target = getMountNode(node)
+    target.replaceWith(marker)
+
+    mountComponent()
+
+    if (!isInDocument(marker)) {
+      setDisconnected()
+      return
+    }
+
+    setConnected()
+  }
+
+  const destroy = () => {
+    destroyComponent({
+      hook,
+      setConnected,
+      setDisconnected,
+    })
+
+    if (__DEV__) {
+      recordComponentEvent(self, ComponentLifecycleEvent.DESTROYED)
+    }
+  }
+
+  const self: Component = {
+    [ComponentSymbol]: true,
+    destroy,
+    hook,
+    mount,
+    setConnected,
+    setDisconnected,
+    unmount,
+  }
+
+  return self
+}
+
+export const createComponentMembers = () => {
+  const marker = document.createComment(COMPONENT_MEMBERS_MARKER)
+
+  const mountMember = (component: Component) => {
+    const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
+    marker.before(componentMarker)
+    component.mount(componentMarker)
+  }
+
+  return {
+    marker,
+    mountMember,
+  }
 }
 
 export const COMPONENT_MARKER = ' ben-js.component '

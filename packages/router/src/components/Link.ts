@@ -15,15 +15,15 @@ export const Link = (
   slot: unknown,
 ): Component => {
   const { href } = normalize(props)
-  const a = ref<HTMLAnchorElement>()
+  const anchor = ref<HTMLAnchorElement>()
 
-  a.on('click', ev => {
+  anchor.on('click', ev => {
     ev.preventDefault()
     go(href.value)
   })
 
   return html`<a
-    ref="${a}"
+    ref="${anchor}"
     ${attrs(props)}
     ${() =>
       currentPath.value === new URL(href.value, document.baseURI).pathname &&
