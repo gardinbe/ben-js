@@ -6,7 +6,7 @@ import {
   normalize,
   type Props,
   ref,
-} from '@ben-js/core'
+} from '@flame/core'
 
 import { currentPath, go } from '../primitives/route'
 

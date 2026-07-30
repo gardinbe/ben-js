@@ -30,7 +30,7 @@ type ReactiveInstance<T = unknown> = {
   readonly [ReactiveSymbol]: true
 } & Reactive<T>
 
-const ReactiveSymbol = Symbol('ben-js.reactive')
+const ReactiveSymbol = Symbol('flame.reactive')
 
 export const isReactive = (value: unknown): value is Reactive =>
   typeof value === 'object' && !!value && ReactiveSymbol in value

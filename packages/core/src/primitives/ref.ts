@@ -1,4 +1,4 @@
-import { reactive, watch } from '@ben-js/reactivity'
+import { reactive, watch } from '@flame/reactivity'
 
 import { InstanceSymbol } from '../internal/instance'
 import { createUUID, type UUID } from '../internal/uuid'

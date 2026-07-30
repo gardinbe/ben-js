@@ -1,5 +1,5 @@
-import { type Component, Swap } from '@ben-js/core'
-import { reactive, subscribe } from '@ben-js/reactivity'
+import { type Component, Swap } from '@flame/core'
+import { reactive, subscribe } from '@flame/reactivity'
 
 import { createError, ErrorType } from '../internal/error'
 import {

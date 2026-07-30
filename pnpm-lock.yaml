@@ -43,10 +43,10 @@ importers:
 
   packages/core:
     dependencies:
-      '@ben-js/common':
+      '@flame/common':
         specifier: workspace:*
         version: link:../common
-      '@ben-js/reactivity':
+      '@flame/reactivity':
         specifier: workspace:*
         version: link:../reactivity
 
@@ -54,13 +54,13 @@ importers:
 
   packages/router:
     dependencies:
-      '@ben-js/common':
+      '@flame/common':
         specifier: workspace:*
         version: link:../common
-      '@ben-js/core':
+      '@flame/core':
         specifier: workspace:*
         version: link:../core
-      '@ben-js/reactivity':
+      '@flame/reactivity':
         specifier: workspace:*
         version: link:../reactivity
 

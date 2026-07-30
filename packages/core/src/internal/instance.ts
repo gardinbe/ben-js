@@ -1,8 +1,8 @@
-import { type Enum } from '@ben-js/common'
+import { type Enum } from '@flame/common'
 
 export type InstanceSymbol = Enum<typeof InstanceSymbol>
 export const InstanceSymbol = {
-  COMPONENT: Symbol('ben-js.component'),
-  REF: Symbol('ben-js.ref'),
-  STATIC_VALUE: Symbol('ben-js.static-value'),
+  COMPONENT: Symbol('flame.component'),
+  REF: Symbol('flame.ref'),
+  STATIC_VALUE: Symbol('flame.static-value'),
 } as const

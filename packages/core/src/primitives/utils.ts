@@ -1,4 +1,4 @@
-import { derived, isReactive, type Reactive } from '@ben-js/reactivity'
+import { derived, isReactive, type Reactive } from '@flame/reactivity'
 
 import { isStaticValue } from './props'
 

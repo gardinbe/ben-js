@@ -1,4 +1,4 @@
-import { reactive } from '@ben-js/reactivity'
+import { reactive } from '@flame/reactivity'
 
 import { type Component } from '../primitives/component'
 import { Swap } from './Swap'

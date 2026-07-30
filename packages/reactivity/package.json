@@ -1,12 +1,12 @@
 {
-  "name": "@ben-js/reactivity",
+  "name": "@flame/reactivity",
   "version": "0.0.0",
-  "description": "@ben-js/reactivity",
+  "description": "@flame/reactivity",
   "license": "MIT",
   "author": "Ben Gardiner <gardinbe@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gardinbe/ben-js.git"
+    "url": "git+https://github.com/gardinbe/flame.git"
   },
   "files": [
     "dist"

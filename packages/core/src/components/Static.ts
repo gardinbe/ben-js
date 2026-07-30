@@ -5,7 +5,7 @@ import {
   type Reactive,
   subscribe,
   unsubscribe,
-} from '@ben-js/reactivity'
+} from '@flame/reactivity'
 
 import { ComponentKind, registerComponent } from '../internal/development'
 import {

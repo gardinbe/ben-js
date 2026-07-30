@@ -1,5 +1,5 @@
-export type BenJsDevelopmentFlag = boolean
+export type FlameDevelopmentFlag = boolean
 
 declare global {
-  const __DEV__: BenJsDevelopmentFlag // oxlint-disable-line eslint/no-underscore-dangle
+  const __DEV__: FlameDevelopmentFlag // oxlint-disable-line eslint/no-underscore-dangle
 }

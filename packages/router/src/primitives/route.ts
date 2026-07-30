@@ -1,5 +1,5 @@
-import { type Component } from '@ben-js/core'
-import { derived, reactive } from '@ben-js/reactivity'
+import { type Component } from '@flame/core'
+import { derived, reactive } from '@flame/reactivity'
 
 export type ResolvedRoute = {
   ctx: RouteContext

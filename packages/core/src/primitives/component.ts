@@ -144,10 +144,10 @@ export const createComponentMembers = () => {
   }
 }
 
-export const COMPONENT_MARKER = ' ben-js.component '
-export const COMPONENT_CHILD_MARKER = ' ben-js.child-component '
-export const COMPONENT_MEMBERS_MARKER = ' ben-js.members-component '
-export const COMPONENT_MEMBER_MARKER = ' ben-js.member-component '
+export const COMPONENT_MARKER = ' flame.component '
+export const COMPONENT_CHILD_MARKER = ' flame.child-component '
+export const COMPONENT_MEMBERS_MARKER = ' flame.members-component '
+export const COMPONENT_MEMBER_MARKER = ' flame.member-component '
 
 const isInDocument = (node: Node) =>
   node.isConnected && node.ownerDocument === document

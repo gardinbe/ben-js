@@ -1,12 +1,12 @@
 {
-  "name": "@ben-js/core",
+  "name": "@flame/core",
   "version": "0.0.0",
-  "description": "@ben-js/core",
+  "description": "@flame/core",
   "license": "MIT",
   "author": "Ben Gardiner <gardinbe@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gardinbe/ben-js.git"
+    "url": "git+https://github.com/gardinbe/flame.git"
   },
   "files": [
     "dist"
@@ -32,7 +32,7 @@
     "dev": "tsup --watch"
   },
   "dependencies": {
-    "@ben-js/common": "workspace:*",
-    "@ben-js/reactivity": "workspace:*"
+    "@flame/common": "workspace:*",
+    "@flame/reactivity": "workspace:*"
   }
 }

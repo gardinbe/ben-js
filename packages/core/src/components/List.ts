@@ -1,4 +1,4 @@
-import { derived, type Reactive, watch } from '@ben-js/reactivity'
+import { derived, type Reactive, watch } from '@flame/reactivity'
 
 import { ComponentKind, registerComponent } from '../internal/development'
 import {

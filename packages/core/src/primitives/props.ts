@@ -1,10 +1,10 @@
-import { type Pojo } from '@ben-js/common'
+import { type Pojo } from '@flame/common'
 import {
   derived,
   isReactive,
   type Reactive,
   type ReadonlyReactive,
-} from '@ben-js/reactivity'
+} from '@flame/reactivity'
 
 import { InstanceSymbol } from '../internal/instance'
 

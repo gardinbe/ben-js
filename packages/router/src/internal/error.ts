@@ -1,4 +1,4 @@
-import { type Enum } from '@ben-js/common'
+import { type Enum } from '@flame/common'
 
 export const ErrorType = {
   MISSING_ROUTE: 'missing-route',
