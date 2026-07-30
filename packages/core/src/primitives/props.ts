@@ -35,15 +35,22 @@ export const attrs = (obj: Pojo): string | Reactive<string> => {
   return create()
 }
 
-export const staticValue = <T>(value: T): StaticValue<T> => ({
-  [InstanceSymbol.STATIC_VALUE]: true,
-  value,
-})
+export const staticValue = <T>(value: T): StaticValue<T> => {
+  const self: StaticValueInstance<T> = {
+    [InstanceSymbol.STATIC_VALUE]: true,
+    value,
+  }
+
+  return self
+}
 
 export type StaticValue<T = unknown> = {
-  readonly [InstanceSymbol.STATIC_VALUE]: true
   readonly value: T
 }
+
+type StaticValueInstance<T = unknown> = {
+  readonly [InstanceSymbol.STATIC_VALUE]: true
+} & StaticValue<T>
 
 export const isStaticValue = (value: unknown): value is StaticValue =>
   typeof value === 'object' && !!value && InstanceSymbol.STATIC_VALUE in value

@@ -6,7 +6,6 @@ import { createError, ErrorType } from '../internal/error'
 import { InstanceSymbol } from '../internal/instance'
 
 export type Component = {
-  readonly [InstanceSymbol.COMPONENT]: true
   readonly destroy: () => void
   readonly hook: (payload: ComponentUsePayload) => Component
   readonly mount: (target: ComponentMountTarget) => void
@@ -14,6 +13,10 @@ export type Component = {
   readonly setDisconnected: () => void
   readonly unmount: () => void
 }
+
+type ComponentInstance = {
+  readonly [InstanceSymbol.COMPONENT]: true
+} & Component
 
 export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && InstanceSymbol.COMPONENT in value
@@ -113,7 +116,7 @@ export const createComponent = ({
     }
   }
 
-  const self: Component = {
+  const self: ComponentInstance = {
     destroy,
     hook,
     [InstanceSymbol.COMPONENT]: true,

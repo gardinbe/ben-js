@@ -3,29 +3,34 @@ import { subscribe, subscriptions } from './subscriptions'
 export const reactive = <T>(value: T): Reactive<T> => {
   let currentValue: T = value
 
-  return {
+  const self: ReactiveInstance<T> = {
     [ReactiveSymbol]: true,
     get value(): T {
-      track(this)
+      track(self)
       return currentValue
     },
     set value(next) {
       currentValue = next
-      trigger(this)
+      trigger(self)
     },
   }
+
+  return self
 }
 
 export type Reactive<T = unknown> = {
-  readonly [ReactiveSymbol]: true
   value: T
 }
 
 export type ReadonlyReactive<T = unknown> = {
   readonly value: T
+}
+
+type ReactiveInstance<T = unknown> = {
+  readonly [ReactiveSymbol]: true
 } & Reactive<T>
 
-export const ReactiveSymbol = Symbol('ben-js.reactive')
+const ReactiveSymbol = Symbol('ben-js.reactive')
 
 export const isReactive = (value: unknown): value is Reactive =>
   typeof value === 'object' && !!value && ReactiveSymbol in value

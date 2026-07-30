@@ -1,7 +1,7 @@
-import { createUUID, type UUID } from '@ben-js/common'
 import { reactive, watch } from '@ben-js/reactivity'
 
 import { InstanceSymbol } from '../internal/instance'
+import { createUUID, type UUID } from '../internal/uuid'
 
 export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   const uuid = createUUID()
@@ -73,7 +73,7 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
     },
   )
 
-  return {
+  const self: RefInstance<E> = {
     [InstanceSymbol.REF]: true,
     off,
     on,
@@ -85,16 +85,21 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
       element.value = el
     },
   }
+
+  return self
 }
 
 export type Ref<E extends HTMLElement = HTMLElement> = {
   readonly el: E | null
   readonly off: EventListenerBinder<E>
   readonly on: EventListenerBinder<E>
-  readonly [InstanceSymbol.REF]: true
   readonly uuid: UUID
   readonly set: (element: E | null) => void
 }
+
+type RefInstance<E extends HTMLElement = HTMLElement> = {
+  readonly [InstanceSymbol.REF]: true
+} & Ref<E>
 
 export const isRef = (value: unknown): value is Ref =>
   typeof value === 'object' && !!value && InstanceSymbol.REF in value

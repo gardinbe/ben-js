@@ -6,7 +6,6 @@ export {
   isReactive,
   type Reactive,
   reactive,
-  ReactiveSymbol,
   type ReadonlyReactive,
   track,
   trigger,
