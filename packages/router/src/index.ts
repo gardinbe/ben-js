@@ -13,4 +13,5 @@ export {
   type RouteComponent,
   type RouteContext,
   type RouteDefinition,
+  useRoutes,
 } from './primitives/route'
