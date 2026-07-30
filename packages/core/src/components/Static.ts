@@ -16,18 +16,19 @@ import {
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
-  connectComponents,
-  disconnectComponents,
   getMountNode,
   isComponent,
   isInDocument,
+  runHooks,
+  setChildComponentsConnected,
+  setChildComponentsDisconnected,
 } from '../component'
 import {
-  ComponentType,
-  createComponentDev,
-  logEvent,
-  LogEventType,
-} from '../dev'
+  ComponentKind,
+  ComponentLifecycleEvent,
+  recordComponentEvent,
+  registerComponent,
+} from '../development'
 import { isStaticValue } from '../normalize'
 import { isRef, type Ref } from '../ref'
 
@@ -46,12 +47,8 @@ export const html = (
   const connectedHooks = new Set<ComponentHookFunction>()
   const disconnectedHooks = new Set<ComponentHookFunction>()
 
-  const dev = createComponentDev(ComponentType.STATIC, () => [
-    ...(content?.components ?? []),
-  ])
-
   const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node, dev)
+    const target = getMountNode(node)
     target.replaceWith(marker)
 
     if (nodes) {
@@ -73,7 +70,13 @@ export const html = (
       return
     }
 
-    connectComponents(content?.components, dev, connectedHooks)
+    setChildComponentsConnected(content?.components)
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.CONNECTED)
+    }
+
+    runHooks(connectedHooks)
     isMounted = true
   }
 
@@ -82,7 +85,13 @@ export const html = (
       return
     }
 
-    disconnectComponents(content?.components, dev, disconnectedHooks)
+    setChildComponentsDisconnected(content?.components)
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.DISCONNECTED)
+    }
+
+    runHooks(disconnectedHooks)
     isMounted = false
   }
 
@@ -91,7 +100,7 @@ export const html = (
       return
     }
 
-    nodes.forEach(node => node.node.remove())
+    nodes.forEach(({ node }) => node.remove())
     marker.remove()
   }
 
@@ -103,7 +112,10 @@ export const html = (
     unmount()
     setDisconnected()
     nodes = null
-    logEvent(LogEventType.DESTROYED, dev)
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.DESTROYED)
+    }
   }
 
   const render = () => {
@@ -139,8 +151,10 @@ export const html = (
     unmount,
   }
 
-  if (dev) {
-    c.DEV = dev
+  if (__DEV__) {
+    registerComponent(c, ComponentKind.STATIC, () => [
+      ...(content?.components ?? []),
+    ])
   }
 
   return c

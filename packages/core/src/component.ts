@@ -1,10 +1,8 @@
-import { logEvent, LogEventType } from './dev'
 import { createError, ErrorType } from './error'
 
 export type Component = {
   readonly [ComponentSymbol]: true
   readonly [ComponentMarkerSymbol]?: Comment
-  DEV?: ComponentDevState
   readonly destroy: () => void
   readonly hook: (payload: ComponentUsePayload) => Component
   readonly mount: (target: ComponentMountTarget) => void
@@ -19,13 +17,6 @@ export const ComponentMarkerSymbol = Symbol('ben-js.component.marker')
 export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && ComponentSymbol in value
 
-export type ComponentDevState = {
-  readonly children: Array<Component>
-  readonly color: string
-  readonly name: string
-  readonly type: string
-}
-
 export type ComponentHook = (fn: ComponentHookFunction) => void
 export type ComponentHookFunction = () => void
 
@@ -36,23 +27,19 @@ export type ComponentUsePayload = {
   disconnected: ComponentHookFunction
 }
 
-export const connectComponents = (
+export const setChildComponentsConnected = (
   components: Array<Component> | undefined,
-  dev: ComponentDevState | null,
-  hooks: Set<ComponentHookFunction>,
 ) => {
   components?.forEach(component => component.setConnected())
-  logEvent(LogEventType.CONNECTED, dev)
-  hooks.forEach(fn => fn())
 }
 
-export const disconnectComponents = (
+export const setChildComponentsDisconnected = (
   components: Array<Component> | undefined,
-  dev: ComponentDevState | null,
-  hooks: Set<ComponentHookFunction>,
 ) => {
   components?.forEach(component => component.setDisconnected())
-  logEvent(LogEventType.DISCONNECTED, dev)
+}
+
+export const runHooks = (hooks: Set<ComponentHookFunction>) => {
   hooks.forEach(fn => fn())
 }
 
@@ -73,14 +60,11 @@ const isChildNode = (node: unknown): node is ChildNode => {
   return t === 1 || t === 3 || t === 4 || t === 7 || t === 8 || t === 10
 }
 
-export const getMountNode = (
-  node: ComponentMountTarget,
-  dev: ComponentDevState | null,
-): ChildNode => {
+export const getMountNode = (node: ComponentMountTarget): ChildNode => {
   const target = typeof node === 'string' ? document.querySelector(node) : node
 
   if (!isChildNode(target)) {
-    throw createError(ErrorType.MISSING_MOUNT_NODE, dev)
+    throw createError(ErrorType.MISSING_MOUNT_NODE)
   }
 
   return target

@@ -5,6 +5,10 @@ import { defineConfig } from 'tsup'
 
 export type CreateTsupConfigOptions = {
   path: string
+  clean?: boolean
+  define?: Record<string, string>
+  entry?: Record<string, string>
+  minifySyntax?: boolean
 }
 
 export const createTsupConfig = (
@@ -16,7 +20,8 @@ export const createTsupConfig = (
     banner: {
       js: createBanner(pkg),
     },
-    clean: true,
+    clean: options.clean ?? true,
+    ...(options.define ? { define: options.define } : {}),
     dts: {
       compilerOptions: {
         composite: false,
@@ -25,11 +30,12 @@ export const createTsupConfig = (
         noEmit: false,
       },
     },
-    entry: {
+    entry: options.entry ?? {
       index: join(options.path, 'src/index.ts'),
     },
     external: ['*'],
     format: ['esm', 'cjs'],
+    minifySyntax: options.minifySyntax ?? false,
     outDir: join(options.path, 'dist'),
     sourcemap: true,
     tsconfig: join(options.path, 'tsconfig.app.json'),

@@ -1,5 +1,25 @@
+import { join } from 'node:path'
+
 import { createTsupConfig } from '../../tsup.config.factory'
 
-export default createTsupConfig({
-  path: import.meta.dirname,
-})
+const path = import.meta.dirname
+
+export default [
+  createTsupConfig({
+    define: {
+      __DEV__: 'false',
+    },
+    minifySyntax: true,
+    path,
+  }),
+  createTsupConfig({
+    clean: false,
+    define: {
+      __DEV__: 'true',
+    },
+    entry: {
+      dev: join(path, 'src/dev.ts'),
+    },
+    path,
+  }),
+]

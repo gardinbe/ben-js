@@ -9,17 +9,18 @@ import {
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
-  connectComponents,
-  disconnectComponents,
   getMountNode,
   isInDocument,
+  runHooks,
+  setChildComponentsConnected,
+  setChildComponentsDisconnected,
 } from '../component'
 import {
-  ComponentType,
-  createComponentDev,
-  logEvent,
-  LogEventType,
-} from '../dev'
+  ComponentKind,
+  ComponentLifecycleEvent,
+  recordComponentEvent,
+  registerComponent,
+} from '../development'
 
 export const Swap = (
   item: (() => Component | null) | Reactive<Component | null>,
@@ -32,10 +33,6 @@ export const Swap = (
   const connectedHooks = new Set<ComponentHookFunction>()
   const disconnectedHooks = new Set<ComponentHookFunction>()
 
-  const dev = createComponentDev(ComponentType.SWAP, () =>
-    getMemberComponents(member.value),
-  )
-
   const add = (component: Component) => {
     const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
     marker.before(componentMarker)
@@ -43,7 +40,7 @@ export const Swap = (
   }
 
   const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node, dev)
+    const target = getMountNode(node)
     target.replaceWith(marker)
 
     if (member.value) {
@@ -63,7 +60,13 @@ export const Swap = (
       return
     }
 
-    connectComponents(getMemberComponents(member.value), dev, connectedHooks)
+    setChildComponentsConnected(getMemberComponents(member.value))
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.CONNECTED)
+    }
+
+    runHooks(connectedHooks)
     isMounted = true
   }
 
@@ -72,11 +75,13 @@ export const Swap = (
       return
     }
 
-    disconnectComponents(
-      getMemberComponents(member.value),
-      dev,
-      disconnectedHooks,
-    )
+    setChildComponentsDisconnected(getMemberComponents(member.value))
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.DISCONNECTED)
+    }
+
+    runHooks(disconnectedHooks)
     isMounted = false
   }
 
@@ -88,7 +93,10 @@ export const Swap = (
   const destroy = () => {
     member.value?.destroy()
     marker.remove()
-    logEvent(LogEventType.DESTROYED, dev)
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.DESTROYED)
+    }
   }
 
   const hook = (payload: ComponentUsePayload) => {
@@ -123,8 +131,10 @@ export const Swap = (
     unmount,
   }
 
-  if (dev) {
-    c.DEV = dev
+  if (__DEV__) {
+    registerComponent(c, ComponentKind.SWAP, () =>
+      getMemberComponents(member.value),
+    )
   }
 
   return c

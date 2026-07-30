@@ -9,17 +9,18 @@ import {
   type ComponentMountTarget,
   ComponentSymbol,
   type ComponentUsePayload,
-  connectComponents,
-  disconnectComponents,
   getMountNode,
   isInDocument,
+  runHooks,
+  setChildComponentsConnected,
+  setChildComponentsDisconnected,
 } from '../component'
 import {
-  ComponentType,
-  createComponentDev,
-  logEvent,
-  LogEventType,
-} from '../dev'
+  ComponentKind,
+  ComponentLifecycleEvent,
+  recordComponentEvent,
+  registerComponent,
+} from '../development'
 
 export const List = (
   items: (() => Array<KeyedComponent>) | Reactive<Array<KeyedComponent>>,
@@ -33,8 +34,6 @@ export const List = (
   const connectedHooks = new Set<ComponentHookFunction>()
   const disconnectedHooks = new Set<ComponentHookFunction>()
 
-  const dev = createComponentDev(ComponentType.LIST, components)
-
   const add = (component: Component) => {
     const componentMarker = document.createComment(COMPONENT_MEMBER_MARKER)
     marker.before(componentMarker)
@@ -42,7 +41,7 @@ export const List = (
   }
 
   const mount = (node: ComponentMountTarget) => {
-    const target = getMountNode(node, dev)
+    const target = getMountNode(node)
     target.replaceWith(marker)
 
     members.value.forEach(({ component }) => add(component))
@@ -60,7 +59,13 @@ export const List = (
       return
     }
 
-    connectComponents(components(), dev, connectedHooks)
+    setChildComponentsConnected(components())
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.CONNECTED)
+    }
+
+    runHooks(connectedHooks)
     isMounted = true
   }
 
@@ -69,7 +74,13 @@ export const List = (
       return
     }
 
-    disconnectComponents(components(), dev, disconnectedHooks)
+    setChildComponentsDisconnected(components())
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.DISCONNECTED)
+    }
+
+    runHooks(disconnectedHooks)
     isMounted = false
   }
 
@@ -81,7 +92,10 @@ export const List = (
   const destroy = () => {
     members.value.forEach(({ component }) => component.destroy())
     marker.remove()
-    logEvent(LogEventType.DESTROYED, dev)
+
+    if (__DEV__) {
+      recordComponentEvent(c, ComponentLifecycleEvent.DESTROYED)
+    }
   }
 
   const hook = (payload: ComponentUsePayload) => {
@@ -123,8 +137,8 @@ export const List = (
     unmount,
   }
 
-  if (dev) {
-    c.DEV = dev
+  if (__DEV__) {
+    registerComponent(c, ComponentKind.LIST, components)
   }
 
   return c

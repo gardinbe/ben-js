@@ -9,7 +9,8 @@ export { type KeyedComponent, List } from './components/List'
 export { html } from './components/Static'
 export { Suspended } from './components/Suspended'
 export { Swap } from './components/Swap'
-export { type ComponentType, enableDevMode, printTree } from './dev'
+export { type NormalizedValues } from './normalize'
+export { attrs, normalize, type Prop, type Props } from './props'
 export {
   type EventListenerBinder,
   type EventMap,
@@ -18,6 +19,4 @@ export {
   type Ref,
   ref,
 } from './ref'
-export { type NormalizedValues } from './normalize'
-export { attrs, normalize, type Prop, type Props } from './props'
 export { cn } from './utils'
