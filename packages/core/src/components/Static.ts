@@ -34,9 +34,6 @@ export const html = (
     const previousContent = content
     const nextContent = createContent(parts)
     content = nextContent
-
-    // todo: restore isSameContent function for performance?
-
     nodes = patch(content, marker, nodes, previousContent, render)
   }
 

@@ -35,7 +35,7 @@ const dynamicSegmentPattern = /^\[(.*)\]$/
 export const resolve = (path: string): ResolvedRoute | null => {
   const segments = path.split('/').filter(Boolean)
 
-  if (!segments.length) {
+  if (segments.length === 0) {
     segments.push('')
   }
 
@@ -44,7 +44,7 @@ export const resolve = (path: string): ResolvedRoute | null => {
     index = 0,
     ctx: RouteContext = {},
   ): ResolvedRoute | null => {
-    const segment = segments[index] ?? ''
+    const segment = segments.at(index) ?? ''
 
     for (const route of routes) {
       if (route.path === '*') {

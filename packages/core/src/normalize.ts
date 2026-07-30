@@ -11,7 +11,7 @@ export type StaticValue<T = unknown> = {
   readonly value: T
 }
 
-export const StaticValueSymbol = Symbol('ben-js.component') // todo: update key, enum type
+export const StaticValueSymbol = Symbol('ben-js.component') // todo: make all symbols use an Enum (type Enum, not ts enum) called InstanceSymbol, shaped like { STATIC_VALUE: Symbol('ben-js.component') }. put this in an appropriate file
 
 export const isStaticValue = (value: unknown): value is StaticValue =>
   typeof value === 'object' && !!value && StaticValueSymbol in value

@@ -114,7 +114,7 @@ const captureComponentName = (): string | null => {
     return null
   }
 
-  const nearestName = names[0]
+  const nearestName = names.at(0)
 
   if (!nearestName || nearestName === '<anonymous>') {
     return `${closestNamedFunction}<anonymous>`
