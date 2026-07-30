@@ -26,15 +26,9 @@ export type ComponentUsePayload = {
   disconnected: ComponentHookFunction
 }
 
-type ComponentLifecycle = {
-  readonly hook: (payload: ComponentUsePayload) => Component
-  readonly setConnected: () => void
-  readonly setDisconnected: () => void
-}
-
 type CreateComponentOptions = {
   readonly marker: Comment
-  readonly destroy: (lifecycle: ComponentLifecycle) => void
+  readonly destroy: () => void
   readonly getChildren: () => Array<Component> | undefined
   readonly mount: () => void
   readonly unmount: () => void
@@ -109,11 +103,8 @@ export const createComponent = ({
   }
 
   const destroy = () => {
-    destroyComponent({
-      hook,
-      setConnected,
-      setDisconnected,
-    })
+    destroyComponent()
+    setDisconnected()
 
     if (__DEV__) {
       recordComponentEvent(self, ComponentLifecycleEvent.DESTROYED)

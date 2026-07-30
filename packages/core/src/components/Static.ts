@@ -43,13 +43,12 @@ export const html = (
   const self = createComponent({
     getChildren: components,
     marker,
-    destroy: ({ setDisconnected }: Pick<Component, 'setDisconnected'>) => {
+    destroy: () => {
       content?.reactives.forEach(rx => unsubscribe(rx, render))
       content?.refs.forEach(ref => ref.set(null))
       content?.components.forEach(component => component.destroy())
       content = null
       self.unmount()
-      setDisconnected()
       nodes = null
     },
     mount: () => {
