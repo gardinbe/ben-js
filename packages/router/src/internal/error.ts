@@ -6,7 +6,7 @@ export const ErrorType = {
 
 export type ErrorType = Enum<typeof ErrorType>
 
-const PREFIX = 'Ben-js/router'
+const PREFIX = 'Flame/router'
 
 const messages: Record<ErrorType, string> = {
   [ErrorType.MISSING_ROUTE]: 'No route resolved',

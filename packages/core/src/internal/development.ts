@@ -1,6 +1,7 @@
 import { type Enum } from '@flame/common'
 
 import { type Component } from '../primitives/component'
+import { ErrorType } from './error'
 
 type ComponentDebugInfo = {
   readonly color: string
@@ -78,9 +79,7 @@ const getComponentDebugInfo = (component: Component): ComponentDebugInfo => {
   const info = componentDebugInfo.get(component)
 
   if (!info) {
-    throw new Error(
-      'Ben-js -> Component debug info is unavailable. Import components from the development entrypoint.',
-    )
+    throw new Error(ErrorType.DEBUG_UNAVAILABLE)
   }
 
   return info
