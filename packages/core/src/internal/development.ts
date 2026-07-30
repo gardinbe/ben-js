@@ -1,6 +1,6 @@
 import { type Enum } from '@ben-js/common'
 
-import { type Component } from './component'
+import { type Component } from '../primitives/component'
 
 type ComponentDebugInfo = {
   readonly color: string

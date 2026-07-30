@@ -1,8 +1,12 @@
 import { type Component, Swap } from '@ben-js/core'
 import { reactive, subscribe } from '@ben-js/reactivity'
 
-import { createError, ErrorType } from '../error'
-import { currentRoute, type RouteDefinition, useRoutes } from '../route'
+import { createError, ErrorType } from '../internal/error'
+import {
+  currentRoute,
+  type RouteDefinition,
+  useRoutes,
+} from '../primitives/route'
 
 export const Router = (
   routes: Array<RouteDefinition>,

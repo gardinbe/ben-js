@@ -1,20 +1,20 @@
 import { type Pojo } from '@ben-js/common'
 import { type ReadonlyReactive } from '@ben-js/reactivity'
 
+import { InstanceSymbol } from '../internal/instance'
+
 export const staticValue = <T>(value: T): StaticValue<T> => ({
-  [StaticValueSymbol]: true,
+  [InstanceSymbol.STATIC_VALUE]: true,
   value,
 })
 
 export type StaticValue<T = unknown> = {
-  readonly [StaticValueSymbol]: true
+  readonly [InstanceSymbol.STATIC_VALUE]: true
   readonly value: T
 }
 
-export const StaticValueSymbol = Symbol('ben-js.component') // todo: make all symbols use an Enum (type Enum, not ts enum) called InstanceSymbol, shaped like { STATIC_VALUE: Symbol('ben-js.component') }. put this in an appropriate file
-
 export const isStaticValue = (value: unknown): value is StaticValue =>
-  typeof value === 'object' && !!value && StaticValueSymbol in value
+  typeof value === 'object' && !!value && InstanceSymbol.STATIC_VALUE in value
 
 export type NormalizedValue<T = unknown> = ReadonlyReactive<T> | StaticValue<T>
 

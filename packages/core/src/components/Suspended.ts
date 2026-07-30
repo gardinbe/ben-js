@@ -1,6 +1,6 @@
 import { reactive } from '@ben-js/reactivity'
 
-import { type Component } from '../component'
+import { type Component } from '../primitives/component'
 import { Swap } from './Swap'
 
 export const Suspended = (

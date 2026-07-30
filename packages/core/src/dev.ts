@@ -1,2 +1,2 @@
-export { printTree } from './development'
 export * from './index'
+export { printTree } from './internal/development'

@@ -1,8 +1,12 @@
-import { ComponentLifecycleEvent, recordComponentEvent } from './development'
-import { createError, ErrorType } from './error'
+import {
+  ComponentLifecycleEvent,
+  recordComponentEvent,
+} from '../internal/development'
+import { createError, ErrorType } from '../internal/error'
+import { InstanceSymbol } from '../internal/instance'
 
 export type Component = {
-  readonly [ComponentSymbol]: true
+  readonly [InstanceSymbol.COMPONENT]: true
   readonly destroy: () => void
   readonly hook: (payload: ComponentUsePayload) => Component
   readonly mount: (target: ComponentMountTarget) => void
@@ -11,10 +15,8 @@ export type Component = {
   readonly unmount: () => void
 }
 
-export const ComponentSymbol = Symbol('ben-js.component')
-
 export const isComponent = (value: unknown): value is Component =>
-  typeof value === 'object' && !!value && ComponentSymbol in value
+  typeof value === 'object' && !!value && InstanceSymbol.COMPONENT in value
 
 export type ComponentHook = (fn: ComponentHookFunction) => void
 export type ComponentHookFunction = () => void
@@ -112,9 +114,9 @@ export const createComponent = ({
   }
 
   const self: Component = {
-    [ComponentSymbol]: true,
     destroy,
     hook,
+    [InstanceSymbol.COMPONENT]: true,
     mount,
     setConnected,
     setDisconnected,
@@ -144,7 +146,7 @@ export const COMPONENT_CHILD_MARKER = ' ben-js.child-component '
 export const COMPONENT_MEMBERS_MARKER = ' ben-js.members-component '
 export const COMPONENT_MEMBER_MARKER = ' ben-js.member-component '
 
-export const isInDocument = (node: Node) =>
+const isInDocument = (node: Node) =>
   node.isConnected && node.ownerDocument === document
 
 const isChildNode = (node: unknown): node is ChildNode => {
@@ -156,7 +158,7 @@ const isChildNode = (node: unknown): node is ChildNode => {
   return t === 1 || t === 3 || t === 4 || t === 7 || t === 8 || t === 10
 }
 
-export const getMountNode = (node: ComponentMountTarget): ChildNode => {
+const getMountNode = (node: ComponentMountTarget): ChildNode => {
   const target = typeof node === 'string' ? document.querySelector(node) : node
 
   if (!isChildNode(target)) {

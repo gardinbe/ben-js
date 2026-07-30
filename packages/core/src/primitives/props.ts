@@ -1,7 +1,11 @@
 import { type Pojo } from '@ben-js/common'
 import { derived, isReactive, type Reactive } from '@ben-js/reactivity'
 
-import { isStaticValue, type NormalizedValues, staticValue } from './normalize'
+import {
+  isStaticValue,
+  type NormalizedValues,
+  staticValue,
+} from './static-value'
 
 export type Prop<T> = Reactive<T> | T
 

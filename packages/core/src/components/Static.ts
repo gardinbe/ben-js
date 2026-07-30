@@ -7,16 +7,16 @@ import {
   unsubscribe,
 } from '@ben-js/reactivity'
 
+import { ComponentKind, registerComponent } from '../internal/development'
 import {
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
   createComponent,
   isComponent,
-} from '../component'
-import { ComponentKind, registerComponent } from '../development'
-import { isStaticValue } from '../normalize'
-import { isRef, type Ref } from '../ref'
+} from '../primitives/component'
+import { isRef, type Ref } from '../primitives/ref'
+import { isStaticValue } from '../primitives/static-value'
 
 export const html = (
   strings: TemplateStringsArray,

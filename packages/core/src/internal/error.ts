@@ -7,7 +7,7 @@ export const ErrorType = {
   MISSING_REF_TARGET: 'missing-ref-target',
 } as const
 
-const PREFIX = 'Ben-js'
+const MESSAGE_PREFIX = 'Ben-js'
 
 const messages: Record<ErrorType, string> = {
   [ErrorType.COMPONENT_MARKER_MISMATCH]: 'Component marker count mismatch',
@@ -16,4 +16,4 @@ const messages: Record<ErrorType, string> = {
 }
 
 export const createError = (type: ErrorType) =>
-  new Error(`${PREFIX} → ${messages[type]}`)
+  new Error(`${MESSAGE_PREFIX} → ${messages[type]}`)

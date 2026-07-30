@@ -1,11 +1,11 @@
 import { derived, type Reactive, watch } from '@ben-js/reactivity'
 
+import { ComponentKind, registerComponent } from '../internal/development'
 import {
   type Component,
   createComponent,
   createComponentMembers,
-} from '../component'
-import { ComponentKind, registerComponent } from '../development'
+} from '../primitives/component'
 
 export const List = (
   items: (() => Array<KeyedComponent>) | Reactive<Array<KeyedComponent>>,

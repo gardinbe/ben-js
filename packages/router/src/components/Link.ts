@@ -8,7 +8,7 @@ import {
   ref,
 } from '@ben-js/core'
 
-import { currentPath, go } from '../route'
+import { currentPath, go } from '../primitives/route'
 
 export const Link = (
   props: Props<HTMLAnchorAttributes>,
@@ -19,6 +19,11 @@ export const Link = (
 
   anchor.on('click', ev => {
     ev.preventDefault()
+
+    if (!href.value) {
+      return
+    }
+
     go(href.value)
   })
 
