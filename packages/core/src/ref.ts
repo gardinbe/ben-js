@@ -47,23 +47,23 @@ export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
     element,
     (next, previous) => {
       if (previous) {
-        listeners.forEach(listener => {
+        listeners.forEach(listener =>
           previous.removeEventListener(
             listener.type,
             listener.callback,
             listener.options,
-          )
-        })
+          ),
+        )
       }
 
       if (next) {
-        listeners.forEach(listener => {
+        listeners.forEach(listener =>
           next.addEventListener(
             listener.type,
             listener.callback,
             listener.options,
-          )
-        })
+          ),
+        )
       }
     },
     {

@@ -47,9 +47,7 @@ export const trigger = (rx: Reactive) => {
   const effect = activeEffect
 
   activeEffect = null
-  subscribers?.forEach(subscriber => {
-    subscriber()
-  })
+  subscribers?.forEach(subscriber => subscriber())
   activeEffect = effect
 }
 

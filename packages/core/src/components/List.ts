@@ -45,9 +45,7 @@ export const List = (
     const target = getMountNode(node, dev)
     target.replaceWith(marker)
 
-    members.value.forEach(({ component }) => {
-      add(component)
-    })
+    members.value.forEach(({ component }) => add(component))
 
     if (!isInDocument(marker)) {
       setDisconnected()
@@ -76,16 +74,12 @@ export const List = (
   }
 
   const unmount = () => {
-    members.value.forEach(({ component }) => {
-      component.unmount()
-    })
+    members.value.forEach(({ component }) => component.unmount())
     marker.remove()
   }
 
   const destroy = () => {
-    members.value.forEach(({ component }) => {
-      component.destroy()
-    })
+    members.value.forEach(({ component }) => component.destroy())
     marker.remove()
     logEvent(LogEventType.DESTROYED, dev)
   }
@@ -108,19 +102,14 @@ export const List = (
         previousItem =>
           !next.some(nextItem => nextItem.key === previousItem.key),
       )
-      .forEach(({ component }) => {
-        component.destroy()
-      })
+      .forEach(({ component }) => component.destroy())
 
     next
       .filter(
         nextItem =>
           !previous.some(previousItem => previousItem.key === nextItem.key),
       )
-      .forEach(({ component }) => {
-        // todo: unsure what this todo is...
-        add(component)
-      })
+      .forEach(({ component }) => add(component))
   })
 
   const c: Component = {

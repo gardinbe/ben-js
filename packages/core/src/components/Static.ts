@@ -55,9 +55,7 @@ export const html = (
     target.replaceWith(marker)
 
     if (nodes) {
-      nodes.forEach(node_ => {
-        marker.before(node_.node)
-      })
+      nodes.forEach(node_ => marker.before(node_.node))
     } else {
       render()
     }
@@ -93,22 +91,14 @@ export const html = (
       return
     }
 
-    nodes.forEach(node => {
-      node.node.remove()
-    })
+    nodes.forEach(node => node.node.remove())
     marker.remove()
   }
 
   const destroy = () => {
-    content?.reactives.forEach(rx => {
-      unsubscribe(rx, render)
-    })
-    content?.refs.forEach(ref => {
-      ref.set(null)
-    })
-    content?.components.forEach(component => {
-      component.destroy()
-    })
+    content?.reactives.forEach(rx => unsubscribe(rx, render))
+    content?.refs.forEach(ref => ref.set(null))
+    content?.components.forEach(component => component.destroy())
     content = null
     unmount()
     setDisconnected()
@@ -174,7 +164,7 @@ const createParts = (
 ): Parts => ({
   strings,
   values: values.map(value =>
-    typeof value === 'function' && value.length === 0
+    typeof value === 'function' && !value.length
       ? derived(value as DerivedEffect)
       : value,
   ),
@@ -213,7 +203,7 @@ const createContent = (parts: Parts): Content => {
   }
 
   const htmlContent = parts.strings
-    .map((str, i) => str + parseValue(parts.values[i]))
+    .map((str, i) => str + parseValue(parts.values.at(i)))
     .join('')
 
   const tpl = document.createElement('template')
@@ -247,29 +237,23 @@ const patch = (
   }
 
   if (previousContent) {
-    previousContent.reactives.difference(content.reactives).forEach(rx => {
-      unsubscribe(rx, render)
-    })
+    previousContent.reactives
+      .difference(content.reactives)
+      .forEach(rx => unsubscribe(rx, render))
 
-    content.reactives.difference(previousContent.reactives).forEach(rx => {
-      subscribe(rx, render)
-    })
+    content.reactives
+      .difference(previousContent.reactives)
+      .forEach(rx => subscribe(rx, render))
 
     previousContent.refs
       .filter(ref => !content.refs.includes(ref))
-      .forEach(ref => {
-        ref.set(null)
-      })
+      .forEach(ref => ref.set(null))
 
     previousContent.components
       .filter(component => !content.components.includes(component))
-      .forEach(component => {
-        component.destroy()
-      })
+      .forEach(component => component.destroy())
   } else {
-    content.reactives.forEach(rx => {
-      subscribe(rx, render)
-    })
+    content.reactives.forEach(rx => subscribe(rx, render))
   }
 
   const nextNodes = createNodeSnapshot(...content.fragment.childNodes)
@@ -306,7 +290,7 @@ const createNodeSnapshot = (...nodes: Array<Node>): Array<NodeSnapshot> =>
 
 const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
   for (let i = 0; i < nodes.length; i += 1) {
-    const snapshot = nodes[i]!
+    const snapshot = nodes.at(i)!
     const node = snapshot.node
     const nodeType = node.nodeType
 
@@ -314,7 +298,7 @@ const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
       nodeType === Node.COMMENT_NODE &&
       (node as Comment).data === COMPONENT_CHILD_MARKER
     ) {
-      state.components[state.componentIndex++]?.mount(node)
+      state.components.at(state.componentIndex++)?.mount(node)
       continue
     }
 
@@ -327,7 +311,7 @@ const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
 
     if (refAttribute) {
       element.removeAttribute('ref')
-      state.refs[state.refIndex++]?.set(element as HTMLElement)
+      state.refs.at(state.refIndex++)?.set(element as HTMLElement)
     }
 
     if (snapshot.children.length) {
@@ -342,28 +326,22 @@ const patchNodes = (
   parent: ParentNode,
   state: WalkState,
 ) => {
-  for (
-    let index = 0;
-    index < nodes.length || index < nextNodes.length;
-    index += 1
-  ) {
-    const snapshot = nodes[index]
-    const nextSnapshot = nextNodes[index]
+  for (let i = 0; i < nodes.length || i < nextNodes.length; i += 1) {
+    const nextSnapshot = nextNodes.at(i)
 
     if (!nextSnapshot) {
-      for (let i = index; i < nodes.length; i += 1) {
-        nodes[i]!.node.remove()
-      }
+      nodes.forEach(({ node }) => node.remove())
 
-      nodes.length = index
+      nodes.length = i
       break
     }
 
+    const snapshot = nodes.at(i)
     const nextNode = nextSnapshot.node
     const nextNodeType = nextNode.nodeType
 
     if (!snapshot) {
-      const lastSnapshot = nodes[nodes.length - 1]
+      const lastSnapshot = nodes.at(-1)
 
       if (lastSnapshot) {
         lastSnapshot.node.after(nextNode)
@@ -379,7 +357,7 @@ const patchNodes = (
         nextNodeType === Node.COMMENT_NODE &&
         (nextNode as Comment).data === COMPONENT_CHILD_MARKER
       ) {
-        const component = state.components[state.componentIndex++]
+        const component = state.components.at(state.componentIndex++)
 
         if (
           node.nodeType === Node.COMMENT_NODE &&
@@ -415,7 +393,7 @@ const patchNodes = (
 
           if (nextElement.hasAttribute('ref')) {
             nextElement.removeAttribute('ref')
-            state.refs[state.refIndex++]?.set(element as HTMLElement)
+            state.refs.at(state.refIndex++)?.set(element as HTMLElement)
           }
 
           patchAttributes(element, nextElement)
@@ -429,7 +407,7 @@ const patchNodes = (
       }
 
       node.replaceWith(nextNode)
-      nodes[index] = nextSnapshot
+      nodes[i] = nextSnapshot
     }
 
     if (nextNodeType !== Node.ELEMENT_NODE) {
@@ -441,7 +419,7 @@ const patchNodes = (
 
     if (refAttribute) {
       nextElement.removeAttribute('ref')
-      state.refs[state.refIndex++]?.set(nextElement as HTMLElement)
+      state.refs.at(state.refIndex++)?.set(nextElement as HTMLElement)
     }
 
     if (nextSnapshot.children.length) {

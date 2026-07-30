@@ -37,33 +37,23 @@ export type ComponentUsePayload = {
 }
 
 export const connectComponents = (
-  components: Iterable<Component> | undefined,
+  components: Array<Component> | undefined,
   dev: ComponentDevState | null,
   hooks: Set<ComponentHookFunction>,
 ) => {
-  for (const component of components ?? []) {
-    component.setConnected()
-  }
-
+  components?.forEach(component => component.setConnected())
   logEvent(LogEventType.CONNECTED, dev)
-  hooks.forEach(fn => {
-    fn()
-  })
+  hooks.forEach(fn => fn())
 }
 
 export const disconnectComponents = (
-  components: Iterable<Component> | undefined,
+  components: Array<Component> | undefined,
   dev: ComponentDevState | null,
   hooks: Set<ComponentHookFunction>,
 ) => {
-  for (const component of components ?? []) {
-    component.setDisconnected()
-  }
-
+  components?.forEach(component => component.setDisconnected())
   logEvent(LogEventType.DISCONNECTED, dev)
-  hooks.forEach(fn => {
-    fn()
-  })
+  hooks.forEach(fn => fn())
 }
 
 export const COMPONENT_MARKER = ' ben-js.component '
