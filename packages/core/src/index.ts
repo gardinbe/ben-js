@@ -9,7 +9,7 @@ export {
   type ComponentHook,
   type ComponentHookFunction,
   type ComponentMountTarget,
-  type ComponentUsePayload,
+  type ComponentHookPayload,
   isComponent,
 } from './primitives/component'
 export {

@@ -7,8 +7,8 @@ import { InstanceSymbol } from '../internal/instance'
 
 export type Component = {
   readonly destroy: () => void
-  readonly hook: (payload: ComponentUsePayload) => Component
   readonly mount: (target: ComponentMountTarget) => void
+  readonly on: (payload: ComponentHookPayload) => Component
   readonly setConnected: () => void // todo: consider renaming/restructuring this
   readonly setDisconnected: () => void
   readonly unmount: () => void
@@ -22,14 +22,14 @@ export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && InstanceSymbol.COMPONENT in value
 
 export type ComponentHook = (fn: ComponentHookFunction) => void
-export type ComponentHookFunction = () => void
+export type ComponentHookFunction = () => Promise<void> | void
+
+export type ComponentHookPayload = {
+  connected?: ComponentHookFunction
+  disconnected?: ComponentHookFunction
+}
 
 export type ComponentMountTarget = string | Node
-
-export type ComponentUsePayload = {
-  connected: ComponentHookFunction
-  disconnected: ComponentHookFunction
-}
 
 type CreateComponentOptions = {
   readonly marker: Comment
@@ -51,7 +51,7 @@ export const createComponent = ({
   const connectedHooks = new Set<ComponentHookFunction>()
   const disconnectedHooks = new Set<ComponentHookFunction>()
 
-  const hook = (payload: ComponentUsePayload) => {
+  const on = (payload: ComponentHookPayload) => {
     if (payload.connected) {
       connectedHooks.add(payload.connected)
     }
@@ -118,9 +118,9 @@ export const createComponent = ({
 
   const self: ComponentInstance = {
     destroy,
-    hook,
     [InstanceSymbol.COMPONENT]: true,
     mount,
+    on,
     setConnected,
     setDisconnected,
     unmount,
