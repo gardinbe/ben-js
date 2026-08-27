@@ -18,7 +18,7 @@ export default [
       __DEV__: 'true',
     },
     entry: {
-      dev: join(path, 'src/dev.ts'),
+      'index.dev': join(path, 'src/index.dev.ts'),
     },
     path,
   }),

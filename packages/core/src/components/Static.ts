@@ -7,7 +7,7 @@ import {
   unsubscribe,
 } from '@flame/reactivity'
 
-import { ComponentKind, registerComponent } from '../internal/development'
+import { ComponentType, addComponent } from '../internal/dev/utils'
 import {
   type Component,
   COMPONENT_CHILD_MARKER,
@@ -66,9 +66,7 @@ export const html = (
   })
 
   if (__DEV__) {
-    registerComponent(self, ComponentKind.STATIC, () => [
-      ...(components() ?? []),
-    ])
+    addComponent(self, ComponentType.STATIC, () => [...(components() ?? [])])
   }
 
   return self

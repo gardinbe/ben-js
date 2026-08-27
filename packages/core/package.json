@@ -17,14 +17,14 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "development": {
+        "types": "./dist/index.dev.d.ts",
+        "import": "./dist/index.dev.mjs",
+        "require": "./dist/index.dev.cjs"
+      },
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
-    },
-    "./dev": {
-      "types": "./dist/dev.d.ts",
-      "import": "./dist/dev.mjs",
-      "require": "./dist/dev.cjs"
     }
   },
   "scripts": {

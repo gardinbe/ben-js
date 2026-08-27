@@ -1,19 +1,18 @@
 import { type Enum } from '@flame/common'
 
-import { type Component } from '../primitives/component'
-import { ErrorType } from './error'
+import { type Component } from '../../primitives/component'
 
 type ComponentDebugInfo = {
   readonly color: string
-  readonly kind: ComponentKind
+  readonly kind: ComponentType
   readonly name: string
   readonly getChildren: () => Array<Component>
 }
 
-const componentDebugInfo = new WeakMap<Component, ComponentDebugInfo>()
+export const componentDebugInfo = new WeakMap<Component, ComponentDebugInfo>()
 
-export type ComponentKind = Enum<typeof ComponentKind>
-export const ComponentKind = {
+export type ComponentType = Enum<typeof ComponentType>
+export const ComponentType = {
   LIST: 'List',
   STATIC: 'Static',
   SWAP: 'Swap',
@@ -26,9 +25,9 @@ export const ComponentLifecycleEvent = {
   DISCONNECTED: 'disconnected',
 } as const
 
-export const registerComponent = (
+export const addComponent = (
   component: Component,
-  kind: ComponentKind,
+  kind: ComponentType,
   getChildren: () => Array<Component>,
 ) => {
   componentDebugInfo.set(component, {
@@ -38,6 +37,12 @@ export const registerComponent = (
     name: captureComponentName() ?? '[anonymous]',
   })
 }
+
+const randomHexColor = () =>
+  // oxlint-disable-next-line unicorn/number-literal-case
+  `#${Math.floor(Math.random() * 0xff_ff_ff)
+    .toString(16)
+    .padStart(6, '0')}`
 
 export const recordComponentEvent = (
   component: Component,
@@ -57,29 +62,37 @@ export const recordComponentEvent = (
   )
 }
 
-export const printTree = (component: Component) => {
-  const lines: Array<string> = []
-  const colors: Array<string> = []
-
-  const walk = (inner: Component, indent = '') => {
-    const info = getComponentDebugInfo(inner)
-    lines.push(`${indent}${info.name}`)
-    colors.push(`color:${info.color}`)
-
-    for (const child of info.getChildren()) {
-      walk(child, `${indent}  `)
+const getEventMarker = (event: ComponentLifecycleEvent) => {
+  switch (event) {
+    case ComponentLifecycleEvent.CONNECTED: {
+      return {
+        color: '#0F0',
+        marker: '+',
+      }
+    }
+    case ComponentLifecycleEvent.DESTROYED: {
+      return {
+        color: '#F00',
+        marker: 'x',
+      }
+    }
+    case ComponentLifecycleEvent.DISCONNECTED:
+    default: {
+      return {
+        color: '#0FF',
+        marker: '-',
+      }
     }
   }
-
-  walk(component)
-  console.log(lines.map(line => `%c${line}`).join('\n'), ...colors)
 }
 
-const getComponentDebugInfo = (component: Component): ComponentDebugInfo => {
+export const getComponentDebugInfo = (
+  component: Component,
+): ComponentDebugInfo => {
   const info = componentDebugInfo.get(component)
 
   if (!info) {
-    throw new Error(ErrorType.DEBUG_UNAVAILABLE)
+    throw new Error('Flame → Component debug info is unavailable')
   }
 
   return info
@@ -120,34 +133,4 @@ const captureComponentName = (): string | null => {
   }
 
   return nearestName
-}
-
-const randomHexColor = () =>
-  // oxlint-disable-next-line unicorn/number-literal-case
-  `#${Math.floor(Math.random() * 0xff_ff_ff)
-    .toString(16)
-    .padStart(6, '0')}`
-
-const getEventMarker = (event: ComponentLifecycleEvent) => {
-  switch (event) {
-    case ComponentLifecycleEvent.CONNECTED: {
-      return {
-        color: '#0F0',
-        marker: '+',
-      }
-    }
-    case ComponentLifecycleEvent.DESTROYED: {
-      return {
-        color: '#F00',
-        marker: 'x',
-      }
-    }
-    case ComponentLifecycleEvent.DISCONNECTED:
-    default: {
-      return {
-        color: '#0FF',
-        marker: '-',
-      }
-    }
-  }
 }

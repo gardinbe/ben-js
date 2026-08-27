@@ -1,7 +1,7 @@
 import {
   ComponentLifecycleEvent,
   recordComponentEvent,
-} from '../internal/development'
+} from '../internal/dev/utils'
 import { createError, ErrorType } from '../internal/error'
 import { InstanceSymbol } from '../internal/instance'
 

@@ -1,6 +1,6 @@
 import { derived, type Reactive, watch } from '@flame/reactivity'
 
-import { ComponentKind, registerComponent } from '../internal/development'
+import { ComponentType, addComponent } from '../internal/dev/utils'
 import {
   type Component,
   createComponent,
@@ -42,7 +42,7 @@ export const Swap = (
   })
 
   if (__DEV__) {
-    registerComponent(self, ComponentKind.SWAP, components)
+    addComponent(self, ComponentType.SWAP, components)
   }
 
   return self
