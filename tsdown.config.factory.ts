@@ -1,20 +1,20 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsdown'
 
-export type CreateTsupConfigOptions = {
-  path: string
+export type CreateTsdownConfigOptions = {
+  packagePath: string
   clean?: boolean
   define?: Record<string, string>
   entry?: Record<string, string>
-  minifySyntax?: boolean
+  minify?: boolean
 }
 
-export const createTsupConfig = (
-  options: CreateTsupConfigOptions,
+export const createTsdownConfig = (
+  options: CreateTsdownConfigOptions,
 ): ReturnType<typeof defineConfig> => {
-  const pkg = getPackageJson(options.path)
+  const pkg = getPackageJson(options.packagePath)
 
   return defineConfig({
     banner: {
@@ -22,25 +22,21 @@ export const createTsupConfig = (
     },
     clean: options.clean ?? true,
     ...(options.define ? { define: options.define } : {}),
-    dts: {
-      compilerOptions: {
-        composite: false,
-        ignoreDeprecations: '6.0',
-        incremental: false,
-        noEmit: false,
-      },
+    deps: {
+      neverBundle: true,
     },
+    dts: true,
     entry: options.entry ?? {
-      index: join(options.path, 'src/index.ts'),
+      index: join(options.packagePath, 'src/index.ts'),
     },
-    external: ['*'],
     format: ['esm', 'cjs'],
-    minifySyntax: options.minifySyntax ?? false,
-    outDir: join(options.path, 'dist'),
+    minify: options.minify ?? false,
+    outDir: join(options.packagePath, 'dist'),
     sourcemap: true,
-    tsconfig: join(options.path, 'tsconfig.app.json'),
-    outExtension: ({ format }) => ({
-      js: format === 'esm' ? '.mjs' : '.cjs',
+    tsconfig: join(options.packagePath, 'tsconfig.app.json'),
+    outExtensions: ({ format }) => ({
+      dts: '.d.ts',
+      js: format === 'es' ? '.mjs' : '.cjs',
     }),
   })
 }
@@ -51,8 +47,8 @@ type Package = {
   version: string
 }
 
-const getPackageJson = (path: string): Package => {
-  const contents = readFileSync(join(path, 'package.json'), 'utf8')
+const getPackageJson = (packagePath: string): Package => {
+  const contents = readFileSync(join(packagePath, 'package.json'), 'utf8')
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion
   const pkg = JSON.parse(contents) as Partial<Package>
 
@@ -62,7 +58,7 @@ const getPackageJson = (path: string): Package => {
     typeof pkg.version !== 'string'
   ) {
     throw new TypeError(
-      `Invalid package metadata in ${join(path, 'package.json')}`,
+      `Invalid package metadata in ${join(packagePath, 'package.json')}`,
     )
   }
 

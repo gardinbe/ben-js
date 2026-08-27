@@ -1,18 +1,18 @@
 import { join } from 'node:path'
 
-import { createTsupConfig } from '../../tsup.config.factory'
+import { createTsdownConfig } from '../../tsdown.config.factory.ts'
 
 const path = import.meta.dirname
 
 export default [
-  createTsupConfig({
+  createTsdownConfig({
     define: {
       __DEV__: 'false',
     },
-    minifySyntax: true,
-    path,
+    minify: true,
+    packagePath: path,
   }),
-  createTsupConfig({
+  createTsdownConfig({
     clean: false,
     define: {
       __DEV__: 'true',
@@ -20,6 +20,6 @@ export default [
     entry: {
       'index.dev': join(path, 'src/index.dev.ts'),
     },
-    path,
+    packagePath: path,
   }),
 ]

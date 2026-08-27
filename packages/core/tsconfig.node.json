@@ -1,5 +1,5 @@
 {
   "extends": "@gardinbe/config/tsconfig/node",
-  "include": ["./", "../../tsup.config.factory.ts"],
+  "include": ["./", "../../tsdown.config.factory.ts"],
   "exclude": ["./src"]
 }
