@@ -1,10 +1,9 @@
 import { type Enum } from '@flame/common'
 
+export type ErrorType = Enum<typeof ErrorType>
 export const ErrorType = {
   MISSING_ROUTE: 'missing-route',
 } as const
-
-export type ErrorType = Enum<typeof ErrorType>
 
 const PREFIX = 'Flame/router'
 
