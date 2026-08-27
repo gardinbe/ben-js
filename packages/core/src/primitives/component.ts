@@ -7,7 +7,7 @@ import { InstanceSymbol } from '../internal/instance'
 
 export type Component = {
   readonly destroy: () => void
-  readonly mount: (target: ComponentMountTarget) => void
+  readonly mount: (target: ComponentMountTarget) => Comment
   readonly onConnect: (fn: ComponentHook) => Component
   readonly onDisconnect: (fn: ComponentHook) => Component
   readonly setConnected: () => void // todo: consider renaming/restructuring this
@@ -94,10 +94,11 @@ export const createComponent = ({
 
     if (!isInDocument(marker)) {
       setDisconnected()
-      return
+      return marker
     }
 
     setConnected()
+    return marker
   }
 
   const destroy = () => {

@@ -24,7 +24,7 @@ export const html = (
 ): Component => {
   const parts = createParts(strings, values)
 
-  let nodes: Array<NodeSnapshot> | null = null
+  let snapshots: Array<NodeSnapshot> | null = null
   let content: Content | null = null
 
   const components = () => content?.components
@@ -34,7 +34,7 @@ export const html = (
     const previousContent = content
     const nextContent = createContent(parts)
     content = nextContent
-    nodes = patch(content, marker, nodes, previousContent, render)
+    snapshots = diff(content, marker, snapshots, previousContent, render)
   }
 
   const self = createComponent({
@@ -46,21 +46,21 @@ export const html = (
       components()?.forEach(component => component.destroy())
       content = null
       self.unmount()
-      nodes = null
+      snapshots = null
     },
     mount: () => {
-      if (nodes) {
-        nodes.forEach(node_ => marker.before(node_.node))
+      if (snapshots) {
+        snapshots.forEach(snapshot => marker.before(snapshot.node))
       } else {
         render()
       }
     },
     unmount: () => {
-      if (!nodes) {
+      if (!snapshots) {
         return
       }
 
-      nodes.forEach(({ node }) => node.remove())
+      snapshots.forEach(({ node }) => node.remove())
       marker.remove()
     },
   })
@@ -151,16 +151,22 @@ const stringify = (value: unknown): string =>
   // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
   value != null && value !== false ? `${value}` : ''
 
-const patch = (
+type NodeSnapshot = {
+  children: Array<NodeSnapshot>
+  node: ChildNode
+}
+
+const diff = (
   content: Content,
   marker: Comment,
-  nodes: Array<NodeSnapshot> | null,
+  snapshots: Array<NodeSnapshot> | null,
   previousContent: Content | null,
   render: () => void,
 ): Array<NodeSnapshot> => {
   const state: WalkState = {
     componentIndex: 0,
     components: content.components,
+    previousComponents: previousContent?.components ?? [],
     refIndex: 0,
     refs: content.refs,
   }
@@ -177,50 +183,47 @@ const patch = (
     previousContent.refs
       .filter(ref => !content.refs.includes(ref))
       .forEach(ref => ref.set(null))
-
-    previousContent.components
-      .filter(component => !content.components.includes(component))
-      .forEach(component => component.destroy())
   } else {
     content.reactives.forEach(rx => subscribe(rx, render))
   }
 
-  const nextNodes = createNodeSnapshot(...content.fragment.childNodes)
+  const nextSnapshots = createSnapshots(...content.fragment.childNodes)
 
-  if (!nodes) {
-    mountNodes(nextNodes, state)
-    marker.before(...nextNodes.map(node => node.node))
-    return nextNodes
+  if (!snapshots) {
+    marker.before(...nextSnapshots.map(node => node.node))
+    setSnapshots(nextSnapshots, state)
+    return nextSnapshots
   }
 
   const parent = marker.parentNode!
 
-  patchNodes(nodes, nextNodes, parent, state)
-  return nodes
+  patchSnapshots(snapshots, nextSnapshots, parent, state)
+
+  state.previousComponents
+    .filter(component => !content.components.includes(component))
+    .forEach(component => component.destroy())
+
+  return snapshots
 }
 
-type NodeSnapshot = {
-  children: Array<NodeSnapshot>
-  node: ChildNode
-}
-
-type WalkState = {
-  componentIndex: number
-  components: Array<Component>
-  refIndex: number
-  refs: Array<Ref>
-}
-
-const createNodeSnapshot = (...nodes: Array<Node>): Array<NodeSnapshot> =>
+const createSnapshots = (...nodes: Array<Node>): Array<NodeSnapshot> =>
   nodes.map(node => ({
-    children: createNodeSnapshot(...node.childNodes),
+    children: createSnapshots(...node.childNodes),
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     node: node as ChildNode,
   }))
 
-const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
-  for (let i = 0; i < nodes.length; i += 1) {
-    const snapshot = nodes.at(i)!
+type WalkState = {
+  componentIndex: number
+  components: Array<Component>
+  previousComponents: Array<Component>
+  refIndex: number
+  refs: Array<Ref>
+}
+
+const setSnapshots = (snapshots: Array<NodeSnapshot>, state: WalkState) => {
+  for (let i = 0; i < snapshots.length; i += 1) {
+    const snapshot = snapshots.at(i)!
     const node = snapshot.node
     const nodeType = node.nodeType
 
@@ -229,7 +232,12 @@ const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       (node as Comment).data === COMPONENT_CHILD_MARKER
     ) {
-      state.components.at(state.componentIndex++)?.mount(node)
+      const component = state.components.at(state.componentIndex++)
+
+      if (component) {
+        snapshot.node = component.mount(node)
+      }
+
       continue
     }
 
@@ -248,33 +256,33 @@ const mountNodes = (nodes: Array<NodeSnapshot>, state: WalkState) => {
     }
 
     if (snapshot.children.length > 0) {
-      mountNodes(snapshot.children, state)
+      setSnapshots(snapshot.children, state)
     }
   }
 }
 
-const patchNodes = (
-  nodes: Array<NodeSnapshot>,
-  nextNodes: Array<NodeSnapshot>,
+const patchSnapshots = (
+  snapshots: Array<NodeSnapshot>,
+  nextSnapshots: Array<NodeSnapshot>,
   parent: ParentNode,
   state: WalkState,
 ) => {
-  for (let i = 0; i < nodes.length || i < nextNodes.length; i += 1) {
-    const nextSnapshot = nextNodes.at(i)
+  for (let i = 0; i < snapshots.length || i < nextSnapshots.length; i += 1) {
+    const nextSnapshot = nextSnapshots.at(i)
 
     if (!nextSnapshot) {
-      nodes.forEach(({ node }) => node.remove())
+      snapshots.forEach(({ node }) => node.remove())
 
-      nodes.length = i
+      snapshots.length = i
       break
     }
 
-    const snapshot = nodes.at(i)
+    const snapshot = snapshots.at(i)
     const nextNode = nextSnapshot.node
     const nextNodeType = nextNode.nodeType
 
     if (!snapshot) {
-      const lastSnapshot = nodes.at(-1)
+      const lastSnapshot = snapshots.at(-1)
 
       if (lastSnapshot) {
         lastSnapshot.node.after(nextNode)
@@ -282,7 +290,9 @@ const patchNodes = (
         parent.append(nextNode)
       }
 
-      nodes.push(nextSnapshot)
+      snapshots.push(nextSnapshot)
+      setSnapshots([nextSnapshot], state)
+      continue
     } else {
       const node = snapshot.node
 
@@ -291,17 +301,25 @@ const patchNodes = (
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         (nextNode as Comment).data === COMPONENT_CHILD_MARKER
       ) {
-        const component = state.components.at(state.componentIndex++)
+        const componentIndex = state.componentIndex++
+        const component = state.components.at(componentIndex)
 
         if (
           node.nodeType === Node.COMMENT_NODE &&
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-          (node as Comment).data === COMPONENT_CHILD_MARKER
+          (node as Comment).data === COMPONENT_MARKER &&
+          state.previousComponents.at(componentIndex) === component
         ) {
           continue
         }
 
-        component?.mount(nextNode)
+        node.replaceWith(nextNode)
+
+        if (component) {
+          nextSnapshot.node = component.mount(nextNode)
+        }
+
+        snapshots[i] = nextSnapshot
         continue
       }
 
@@ -336,13 +354,18 @@ const patchNodes = (
             state.refs.at(state.refIndex++)?.set(element as HTMLElement)
           }
 
-          patchAttributes(element, nextElement)
+          patchElementAttributes(element, nextElement)
 
           if (
             snapshot.children.length > 0 ||
             nextSnapshot.children.length > 0
           ) {
-            patchNodes(snapshot.children, nextSnapshot.children, element, state)
+            patchSnapshots(
+              snapshot.children,
+              nextSnapshot.children,
+              element,
+              state,
+            )
           }
 
           continue
@@ -350,47 +373,31 @@ const patchNodes = (
       }
 
       node.replaceWith(nextNode)
-      nodes[i] = nextSnapshot
+      snapshots[i] = nextSnapshot
     }
 
-    if (nextNodeType !== Node.ELEMENT_NODE) {
-      continue
-    }
-
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    const nextElement = nextNode as Element
-    const refAttribute = nextElement.getAttribute('ref')
-
-    if (refAttribute) {
-      nextElement.removeAttribute('ref')
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      state.refs.at(state.refIndex++)?.set(nextElement as HTMLElement)
-    }
-
-    if (nextSnapshot.children.length > 0) {
-      mountNodes(nextSnapshot.children, state)
-    }
+    setSnapshots([nextSnapshot], state)
   }
 }
 
-const patchAttributes = (node: Element, nextNode: Element) => {
+const patchElementAttributes = (element: Element, nextElement: Element) => {
   const nextAttributes = new Map(
-    [...nextNode.attributes].map(attr => [attr.name, attr.value]),
+    [...nextElement.attributes].map(attr => [attr.name, attr.value]),
   )
 
-  ;[...node.attributes].forEach(attr => {
+  ;[...element.attributes].forEach(attr => {
     if (nextAttributes.has(attr.name)) {
       return
     }
 
-    node.removeAttribute(attr.name)
+    element.removeAttribute(attr.name)
   })
 
   nextAttributes.forEach((value, name) => {
-    if (node.getAttribute(name) === value) {
+    if (element.getAttribute(name) === value) {
       return
     }
 
-    node.setAttribute(name, value)
+    element.setAttribute(name, value)
   })
 }
