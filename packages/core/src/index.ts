@@ -7,9 +7,7 @@ export * from './primitives/attributes'
 export {
   type Component,
   type ComponentHook,
-  type ComponentHookFunction,
   type ComponentMountTarget,
-  type ComponentHookPayload,
   isComponent,
 } from './primitives/component'
 export {

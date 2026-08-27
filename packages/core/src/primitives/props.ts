@@ -11,9 +11,7 @@ import { InstanceSymbol } from '../internal/instance'
 export type Prop<T> = Reactive<T> | T
 
 export type Props<T = Pojo> = {
-  [K in keyof T]: T[K] extends undefined
-    ? undefined
-    : Prop<Exclude<T[K], undefined>>
+  [K in keyof T]: T[K] extends undefined ? undefined : Prop<T[K]>
 }
 
 export const attrs = (obj: Pojo): string | Reactive<string> => {

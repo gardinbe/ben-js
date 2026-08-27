@@ -8,7 +8,8 @@ import { InstanceSymbol } from '../internal/instance'
 export type Component = {
   readonly destroy: () => void
   readonly mount: (target: ComponentMountTarget) => void
-  readonly on: (payload: ComponentHookPayload) => Component
+  readonly onConnect: (fn: ComponentHook) => Component
+  readonly onDisconnect: (fn: ComponentHook) => Component
   readonly setConnected: () => void // todo: consider renaming/restructuring this
   readonly setDisconnected: () => void
   readonly unmount: () => void
@@ -21,13 +22,7 @@ type ComponentInstance = {
 export const isComponent = (value: unknown): value is Component =>
   typeof value === 'object' && !!value && InstanceSymbol.COMPONENT in value
 
-export type ComponentHook = (fn: ComponentHookFunction) => void
-export type ComponentHookFunction = () => Promise<void> | void
-
-export type ComponentHookPayload = {
-  connected?: ComponentHookFunction
-  disconnected?: ComponentHookFunction
-}
+export type ComponentHook = () => Promise<void> | void
 
 export type ComponentMountTarget = string | Node
 
@@ -48,18 +43,16 @@ export const createComponent = ({
 }: CreateComponentOptions): Component => {
   let isMounted = false
 
-  const connectedHooks = new Set<ComponentHookFunction>()
-  const disconnectedHooks = new Set<ComponentHookFunction>()
+  const connectedHooks = new Set<ComponentHook>()
+  const disconnectedHooks = new Set<ComponentHook>()
 
-  const on = (payload: ComponentHookPayload) => {
-    if (payload.connected) {
-      connectedHooks.add(payload.connected)
-    }
+  const onConnect = (fn: ComponentHook) => {
+    connectedHooks.add(fn)
+    return self
+  }
 
-    if (payload.disconnected) {
-      disconnectedHooks.add(payload.disconnected)
-    }
-
+  const onDisconnect = (fn: ComponentHook) => {
+    disconnectedHooks.add(fn)
     return self
   }
 
@@ -120,7 +113,8 @@ export const createComponent = ({
     destroy,
     [InstanceSymbol.COMPONENT]: true,
     mount,
-    on,
+    onConnect,
+    onDisconnect,
     setConnected,
     setDisconnected,
     unmount,
