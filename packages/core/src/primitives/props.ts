@@ -64,6 +64,6 @@ export const normalize = <T>(props: Props<T>): NormalizedValues<T> =>
   Object.fromEntries(
     Object.entries(props).map(([key, value]) => [
       key,
-      isReactive(value) ? value : staticValue(value),
+      isReactive(value) || isStaticValue(value) ? value : staticValue(value),
     ]),
   ) as NormalizedValues<T>
