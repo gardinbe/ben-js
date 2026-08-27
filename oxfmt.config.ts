@@ -1,3 +1,3 @@
-import config from '@gardinbe/config/oxfmt'
+import oxfmtConfig from '@gardinbe/config/oxfmt'
 
-export default config
+export default oxfmtConfig

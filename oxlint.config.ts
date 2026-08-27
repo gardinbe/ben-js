@@ -1,3 +1,3 @@
-import config from '@gardinbe/config/oxlint'
+import oxlintConfig from '@gardinbe/config/oxlint'
 
-export default config
+export default oxlintConfig
