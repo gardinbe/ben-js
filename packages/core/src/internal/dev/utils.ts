@@ -1,6 +1,6 @@
 import { type Enum } from '@flame/common'
 
-import { type Component } from '../../primitives/component'
+import { type Component } from '#primitives/component.ts'
 
 type ComponentDebugInfo = {
   readonly color: string

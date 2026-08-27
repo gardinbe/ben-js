@@ -6,7 +6,7 @@ import {
   type ReadonlyReactive,
 } from '@flame/reactivity'
 
-import { InstanceSymbol } from '../internal/instance'
+import { InstanceSymbol } from '#internal/instance.ts'
 
 export type Prop<T> = Reactive<T> | T
 

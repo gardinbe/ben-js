@@ -1,7 +1,7 @@
 import { reactive, watch } from '@flame/reactivity'
 
-import { InstanceSymbol } from '../internal/instance'
-import { createUUID, type UUID } from '../internal/uuid'
+import { InstanceSymbol } from '#internal/instance.ts'
+import { createUUID, type UUID } from '#internal/uuid.ts'
 
 export const ref = <E extends HTMLElement = HTMLElement>(): Ref<E> => {
   const uuid = createUUID()

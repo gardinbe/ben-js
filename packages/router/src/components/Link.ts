@@ -8,7 +8,7 @@ import {
   ref,
 } from '@flame/core'
 
-import { currentPath, go } from '../primitives/route'
+import { currentPath, go } from '#primitives/route.ts'
 
 export const Link = (
   props: Props<HTMLAnchorAttributes>,

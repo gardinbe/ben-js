@@ -7,16 +7,16 @@ import {
   unsubscribe,
 } from '@flame/reactivity'
 
-import { ComponentType, addComponent } from '../internal/dev/utils'
+import { addComponent, ComponentType } from '#internal/dev/utils.ts'
 import {
   type Component,
   COMPONENT_CHILD_MARKER,
   COMPONENT_MARKER,
   createComponent,
   isComponent,
-} from '../primitives/component'
-import { isStaticValue } from '../primitives/props'
-import { isRef, type Ref } from '../primitives/ref'
+} from '#primitives/component.ts'
+import { isStaticValue } from '#primitives/props.ts'
+import { isRef, type Ref } from '#primitives/ref.ts'
 
 export const html = (
   strings: TemplateStringsArray,

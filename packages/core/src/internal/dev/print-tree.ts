@@ -1,4 +1,5 @@
-import { type Component } from '../../index.dev'
+import { type Component } from '#primitives/component.ts'
+
 import { getComponentDebugInfo } from './utils'
 
 export const printTree = (component: Component) => {

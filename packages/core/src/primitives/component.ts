@@ -1,9 +1,9 @@
 import {
   ComponentLifecycleEvent,
   recordComponentEvent,
-} from '../internal/dev/utils'
-import { createError, ErrorType } from '../internal/error'
-import { InstanceSymbol } from '../internal/instance'
+} from '#internal/dev/utils.ts'
+import { createError, ErrorType } from '#internal/error.ts'
+import { InstanceSymbol } from '#internal/instance.ts'
 
 export type Component = {
   readonly destroy: () => void

@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-export * from './index'
+export * from '#index.ts'
 
 // oxlint-disable-next-line eslint/no-underscore-dangle
 window.__FLAME__ = {

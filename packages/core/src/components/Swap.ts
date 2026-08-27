@@ -1,11 +1,11 @@
 import { derived, type Reactive, watch } from '@flame/reactivity'
 
-import { ComponentType, addComponent } from '../internal/dev/utils'
+import { addComponent, ComponentType } from '#internal/dev/utils.ts'
 import {
   type Component,
   createComponent,
   createComponentMembers,
-} from '../primitives/component'
+} from '#primitives/component.ts'
 
 export const Swap = (
   item: (() => Component | null) | Reactive<Component | null>,

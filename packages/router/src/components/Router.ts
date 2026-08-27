@@ -1,12 +1,12 @@
 import { type Component, Swap } from '@flame/core'
 import { reactive, subscribe } from '@flame/reactivity'
 
-import { createError, ErrorType } from '../internal/error'
+import { createError, ErrorType } from '#internal/error.ts'
 import {
   currentRoute,
   type RouteDefinition,
   useRoutes,
-} from '../primitives/route'
+} from '#primitives/route.ts'
 
 export const Router = (
   routes: Array<RouteDefinition>,
