@@ -27,12 +27,14 @@ export const Link = (
     go(href.value)
   })
 
-  return html`<a
-    ref="${anchor}"
-    ${attrs(props)}
-    ${() =>
-      currentPath.value === new URL(href.value, document.baseURI).pathname &&
-      'data-route-active'}
-    >${slot}</a
-  >`
+  return html`
+    <a
+      ref="${anchor}"
+      ${attrs(props)}
+      ${() =>
+        currentPath.value === new URL(href.value, document.baseURI).pathname &&
+        'data-route-active'}
+      >${slot}</a
+    >
+  `
 }
